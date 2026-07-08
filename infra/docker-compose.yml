@@ -1,0 +1,22 @@
+name: financeia
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: financeia-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-financeia}
+      POSTGRES_USER: ${POSTGRES_USER:-financeia}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-financeia-dev}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-financeia} -d ${POSTGRES_DB:-financeia}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
