@@ -104,7 +104,7 @@ Remote: `https://github.com/JokerFoxyy/DinDin.git`. Mesmo fluxo do ContratoIA:
 
 1. **Ao iniciar qualquer feature/sessão, criar uma branch a partir de `develop`**: `git checkout develop && git checkout -b feature/<descricao-kebab>` (ex.: `feature/auth-jwt`, `feature/setup-frontend`). Nunca trabalhar direto na `main` ou `develop`.
 2. Commitar na feature branch (commits pequenos e coerentes) e **sempre dar push para o GitHub**: `git push -u origin feature/<descricao-kebab>`. Trabalho não termina sem push — commit local só não conta.
-3. Merge em `develop` via PR (a partir da sessão #4, um Action cria o PR automaticamente no push da feature branch; até lá, criar com `gh pr create` ou merge local + push).
-4. `develop → main` também só via PR de release.
+3. Merge em `develop` via PR — o workflow `feature-pr.yml` cria o PR automaticamente no push da feature branch.
+4. `develop → main` só via PR de release (criado automaticamente pelo `auto-pr.yml` no push da develop).
 
-Enquanto a branch protection não estiver configurada no GitHub (pré-req da sessão #4), a disciplina é a mesma — o hábito não muda.
+CI (`.github/workflows/`): `ci-api.yml` (mvnw verify com Testcontainers + JaCoCo 90%; imagem Docker → GHCR na main) e `ci-web.yml` (lint, build:prod, test:ci com thresholds) usam **filtros de path** — mudança só em `api/` não roda CI do front e vice-versa; ao editar um workflow, o próprio arquivo está nos paths. `security.yml`: CodeQL (Java e TS), Trivy fs (+ imagem na main), Dependency Review em PRs, cron semanal.
