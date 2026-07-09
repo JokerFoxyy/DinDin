@@ -55,8 +55,12 @@ Push em branch `feature/ci-cd` → conferir: PR automático criado, CI api verde
 
 ## Status
 
-- [ ] TASK-1 — ci-api.yml
-- [ ] TASK-2 — ci-web.yml
-- [ ] TASK-3 — security.yml
-- [ ] TASK-4 — feature-pr.yml + auto-pr.yml
-- [ ] TASK-5 — Verificação end-to-end
+- [x] TASK-1 — ci-api.yml
+- [x] TASK-2 — ci-web.yml
+- [x] TASK-3 — security.yml
+- [x] TASK-4 — feature-pr.yml + auto-pr.yml
+- [ ] TASK-5 — Verificação end-to-end (em andamento)
+
+**Nota de setup:** o GitHub bloqueia Actions de criarem PRs por default — habilitado via
+`PUT /repos/JokerFoxyy/DinDin/actions/permissions/workflow` (`can_approve_pull_request_reviews=true`).
+Equivale a Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests".
