@@ -1,0 +1,21 @@
+<div class="layout">
+  <aside>
+    <div class="logo">Din<span>Din</span></div>
+    <nav>
+      @for (item of navItems; track item.path) {
+        <a class="nav-item" [routerLink]="item.path" routerLinkActive="active">
+          <span>{{ item.icon }}</span> {{ item.label }}
+        </a>
+      }
+    </nav>
+    <div class="sidebar-footer">
+      @if (currentUser(); as user) {
+        <div class="user-email" [title]="user.email">{{ user.email }}</div>
+      }
+      <button class="logout-btn" (click)="logout()">Sair</button>
+    </div>
+  </aside>
+  <main>
+    <router-outlet />
+  </main>
+</div>
