@@ -83,7 +83,7 @@ Pré-req: #1.
 Tasks: (1) Angular 20 + Tailwind + tema dark do protótipo (variáveis CSS `--bg`, `--card`, `--accent`...); (2) layout shell — sidebar (Dashboard, Transações, Investimentos, Metas, Fixos, Configurações), topbar com month-picker; (3) telas login/registro + interceptor JWT + guards; (4) verificação (login funcional contra a API).
 Pré-req: #2.
 
-**#4 — CI/CD** 📋 SDD PRONTO (`docs/session-04-cicd/SDD.md` — espelho do ContratoIA; pré-req manual: publicar repo no GitHub + branch `develop` + branch protection)
+**#4 — CI/CD** ✅ CONCLUÍDA (2026-07-09 — SDD: `docs/session-04-cicd/SDD.md`; 5 workflows verdes no PR #4; pendência manual: branch protection em main/develop). **Fase 0 completa.**
 Tasks: (1) GitHub Actions backend (build, test); (2) frontend (build, test); (3) CodeQL + Trivy + Dependency Review; (4) verificação (pipelines verdes).
 Pré-req: #1–#3 (pode rodar em paralelo com #5+).
 

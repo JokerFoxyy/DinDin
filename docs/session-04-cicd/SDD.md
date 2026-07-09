@@ -59,7 +59,22 @@ Push em branch `feature/ci-cd` → conferir: PR automático criado, CI api verde
 - [x] TASK-2 — ci-web.yml
 - [x] TASK-3 — security.yml
 - [x] TASK-4 — feature-pr.yml + auto-pr.yml
-- [ ] TASK-5 — Verificação end-to-end (em andamento)
+- [x] TASK-5 — Verificação end-to-end
+
+**Resultado da verificação (2026-07-09, PR #4):**
+- Push em `feature/ci-cd` → PR criado automaticamente pelo `feature-pr.yml` ✅
+- CI - API (Testcontainers + JaCoCo) ✅ ~57s · CI - Web (build + testes com thresholds) ✅ ~50s
+- Security Scan: CodeQL Java ✅ · CodeQL TypeScript ✅ · Trivy fs ✅ · Dependency Review ✅
+- Path filters validados (push só de docs não dispara CI de api/web)
+- Jobs `docker`/`container-scan`: skip fora da `main` (como projetado)
+
+**Problemas encontrados e corrigidos durante a verificação:**
+1. Actions sem permissão de criar PR → habilitado via API (nota acima).
+2. Runs de `pull_request` do PR criado pelo bot ficaram `action_required` (bot é tratado como
+   first-time contributor) → resolvido com push de commit do usuário no PR (evento synchronize).
+   Se voltar a acontecer: Settings → Actions → General → aprovação de workflows.
+3. Trivy tomou 429 do Maven Central ao resolver o pom → passo `mvn dependency:tree` antes
+   do scan popula o `~/.m2` (mesma solução do ContratoIA).
 
 **Nota de setup:** o GitHub bloqueia Actions de criarem PRs por default — habilitado via
 `PUT /repos/JokerFoxyy/DinDin/actions/permissions/workflow` (`can_approve_pull_request_reviews=true`).
