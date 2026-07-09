@@ -1,19 +1,19 @@
-name: financeia
+name: dindin
 
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: financeia-postgres
+    container_name: dindin-postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-financeia}
-      POSTGRES_USER: ${POSTGRES_USER:-financeia}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-financeia-dev}
+      POSTGRES_DB: ${POSTGRES_DB:-dindin}
+      POSTGRES_USER: ${POSTGRES_USER:-dindin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dindin-dev}
     ports:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-financeia} -d ${POSTGRES_DB:-financeia}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dindin} -d ${POSTGRES_DB:-dindin}"]
       interval: 5s
       timeout: 3s
       retries: 10
