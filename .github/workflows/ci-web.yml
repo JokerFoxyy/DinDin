@@ -1,0 +1,89 @@
+name: CI - Web
+
+on:
+  push:
+    branches: [main, develop, 'feature/**']
+    paths: ['web/**', '.github/workflows/ci-web.yml']
+  pull_request:
+    branches: [main, develop]
+    paths: ['web/**', '.github/workflows/ci-web.yml']
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Build production
+        run: npm run build:prod
+        env:
+          NODE_OPTIONS: --max_old_space_size=4096
+
+      - name: Upload build artifact
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: web/dist/web/
+          retention-days: 7
+
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test with coverage (thresholds 90/80/90/90)
+        run: npm run test:ci
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-web
+          path: web/coverage/web/
+          retention-days: 7
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          echo "## Coverage Report (Web)" >> $GITHUB_STEP_SUMMARY
+          echo "**Minimum required: 90% statements, 80% branches, 90% functions, 90% lines** (enforced by Karma)" >> $GITHUB_STEP_SUMMARY
