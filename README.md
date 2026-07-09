@@ -22,7 +22,9 @@ cd api
 ./mvnw spring-boot:run
 ```
 
-- Health: http://localhost:8080/actuator/health
-- Swagger: http://localhost:8080/swagger-ui.html
+- Health: http://localhost:8080/api/actuator/health
+- Swagger: http://localhost:8080/api/swagger-ui.html
+
+Qualidade: cobertura mínima de 90% de linha (JaCoCo, quebra o build no `verify`).
 
 Roadmap e arquitetura: [docs/PLANO-SDD.md](docs/PLANO-SDD.md)

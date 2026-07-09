@@ -49,9 +49,37 @@ docs/   PLANO-SDD.md + SDDs por sessão
 
 ## Comandos
 
-Ainda não há build configurado. Quando as sessões #1–#3 criarem os projetos, os comandos esperados serão:
+```bash
+# Banco (Postgres 16 na porta 5433; Docker Desktop precisa estar rodando)
+docker compose -f infra/docker-compose.yml up -d
 
-- API: `cd api && ./mvnw verify` (testes usam Testcontainers — Docker precisa estar rodando); subir dependências com `docker compose -f infra/docker-compose.yml up -d postgres`.
-- Web: `cd web && npm start` (dev server), `npm test` (Karma/Jasmine), `npm run build`.
+# API — build + testes + cobertura (o que o CI roda)
+cd api && ./mvnw verify
 
-Atualize esta seção com os comandos reais assim que existirem.
+# Um teste só
+./mvnw test -Dtest=AuthServiceTest
+./mvnw test -Dtest=AuthServiceTest#shouldThrowEmailAlreadyUsed_whenEmailExists
+
+# Rodar a API
+./mvnw spring-boot:run
+```
+
+**Gotcha de JDK:** o `java` default da máquina é 19; o projeto exige 21. Antes de qualquer comando Maven: `$env:JAVA_HOME = "C:\Program Files\Java\jdk-21"` (PowerShell). Os testes de integração usam Testcontainers — Docker Desktop precisa estar de pé, senão o contexto falha com "find a Docker environment failed".
+
+**URLs (context-path `/api`):** health em `http://localhost:8080/api/actuator/health`, Swagger em `http://localhost:8080/api/swagger-ui.html`. Endpoints: `/api/v1/...` (controllers usam `@RequestMapping("/v1/...")`; o prefixo vem de `server.servlet.context-path`).
+
+## Qualidade — regras obrigatórias
+
+- **Cobertura mínima de 90% de linha em testes unitários/integração — enforçada pelo JaCoCo na fase `verify`** (regra no `api/pom.xml`); build quebra abaixo disso. No frontend (a partir da sessão #3), thresholds no Karma: 90% statements/functions/lines, 80% branches. Toda feature nova entra com testes na mesma sessão — nunca como follow-up.
+- Convenção de nomes de teste: `should<ComportamentoEsperado>_when<Condicao>` (ex.: `shouldReturn401_whenPasswordIsWrong`).
+- Unit tests com Mockito para services; integração com `@SpringBootTest` + Testcontainers (Postgres real, nunca H2).
+- Segurança: deny-by-default no `SecurityConfig` — todo endpoint novo é autenticado a menos que explicitamente liberado; `@Valid` em todo request DTO; segredos só via env var.
+- CLAUDE.md e README devem ser atualizados no mesmo commit que muda comandos, endpoints ou arquitetura.
+
+## Auth (sessão #2)
+
+JWT próprio HS256 (jjwt): `POST /api/v1/auth/register` (201) e `/login` retornam `{token, tokenType, expiresInSeconds}`; `GET /api/v1/auth/me` prova o token. `JwtAuthFilter` popula o SecurityContext com `AuthenticatedUser(id, email)` — controllers recebem via `@AuthenticationPrincipal`. Config: `JWT_SECRET` (≥32 bytes) e `JWT_EXPIRATION` (ISO-8601, default PT2H). Públicos: register/login, health, swagger. Erros padronizados pelo `GlobalExceptionHandler` (400 com `fieldErrors`, 401, 409, 500).
+
+## Git workflow
+
+Por enquanto o repo é só local: commits diretos na `main`, um commit por sessão. Quando o repo for publicado no GitHub (sessão #4 — CI/CD), o fluxo passa a ser o mesmo do ContratoIA: **nunca push direto em `main`/`develop`**, feature branches `feature/<kebab>` com auto-PR via Actions (plano em `docs/session-04-cicd/SDD.md`).

@@ -75,7 +75,7 @@ Cada migration entra na sessão que implementa a feature correspondente.
 Tasks: (1) monorepo `api/`+`web/`+`infra/`+`docs/`; (2) Docker Compose com Postgres 16; (3) Spring Boot 3.5 + Flyway V1 (`users`) + springdoc + healthcheck; (4) verificação (`docker compose up`, `/actuator/health`, Swagger UI).
 Pré-req: nenhum.
 
-**#2 — Auth JWT**
+**#2 — Auth JWT** ✅ CONCLUÍDA (2026-07-08 — SDD: `docs/session-02-auth-jwt/SDD.md`; cobertura 97,3%, JaCoCo 90% enforçado desde aqui)
 Tasks: (1) register/login com password hash (BCrypt) e emissão de JWT; (2) Spring Security filter chain + contexto do usuário; (3) testes (Testcontainers); (4) verificação end-to-end via curl.
 Pré-req: #1.
 
@@ -83,7 +83,7 @@ Pré-req: #1.
 Tasks: (1) Angular 20 + Tailwind + tema dark do protótipo (variáveis CSS `--bg`, `--card`, `--accent`...); (2) layout shell — sidebar (Dashboard, Transações, Investimentos, Metas, Fixos, Configurações), topbar com month-picker; (3) telas login/registro + interceptor JWT + guards; (4) verificação (login funcional contra a API).
 Pré-req: #2.
 
-**#4 — CI/CD**
+**#4 — CI/CD** 📋 SDD PRONTO (`docs/session-04-cicd/SDD.md` — espelho do ContratoIA; pré-req manual: publicar repo no GitHub + branch `develop` + branch protection)
 Tasks: (1) GitHub Actions backend (build, test); (2) frontend (build, test); (3) CodeQL + Trivy + Dependency Review; (4) verificação (pipelines verdes).
 Pré-req: #1–#3 (pode rodar em paralelo com #5+).
 
