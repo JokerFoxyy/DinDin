@@ -1,6 +1,6 @@
-# FinanceIA — Plano SDD de Implementação
+# DinDin — Plano SDD de Implementação
 
-> **Fonte:** `FinanceIA/spec-app-financeiro.md` + `FinanceIA/prototipo-dashboard.html`
+> **Fonte:** `DinDin/spec-app-financeiro.md` + `DinDin/prototipo-dashboard.html`
 > **Criado em:** 2026-07-07
 > **Decisão do usuário:** Frontend em **Angular** (a spec original sugeria React) e APIs em **Java**.
 > Este arquivo é o documento-mestre. Cada sessão ganhará seu próprio SDD detalhado em
@@ -30,9 +30,9 @@
 ## 2. Estrutura do monorepo
 
 ```
-FinanceIA/                  (repo git)
+DinDin/                  (repo git)
 ├── api/                    Spring Boot (Java 21, Maven)
-│   └── src/main/java/.../finapp/
+│   └── src/main/java/com/dindin/api/
 │       ├── auth/  account/  category/  transaction/  invoice/
 │       ├── recurring/  budget/  goal/  investment/  dashboard/  importer/
 │       └── common/         (config, security, erros, money)
