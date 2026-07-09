@@ -9,9 +9,8 @@ Replicar a esteira do ContratoIA neste monorepo: CI com cobertura mínima 90%, s
 
 ## Pré-requisito manual (USUÁRIO)
 
-- Criar repo `financeia` no GitHub e adicionar remote + push da `main`.
-- Criar branch `develop` a partir da `main`.
-- Branch protection em `main` e `develop`: só merge via PR aprovado (igual ContratoIA — **nunca push direto**).
+- ~~Criar repo no GitHub e push da `main`~~ ✅ feito em 2026-07-08 (`JokerFoxyy/FinanceIA`, main + develop publicadas)
+- Branch protection em `main` e `develop`: só merge via PR aprovado (igual ContratoIA — **nunca push direto**). Config no GitHub: Settings → Branches → Add rule (**pendente, USUÁRIO**).
 
 ## Workflows planejados
 
