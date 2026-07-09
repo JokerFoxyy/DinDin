@@ -5,11 +5,11 @@
 
 ## Objetivo
 
-Replicar a esteira do ContratoIA neste monorepo: CI com cobertura mínima 90%, security scanning (CodeQL + Trivy + Dependency Review), auto-PRs por branch e imagem Docker no GHCR. Diferença estrutural: **ContratoIA tem 3 repos; FinanceIA é monorepo** → um único `.github/workflows/` com filtros de path (`api/**`, `web/**`) para não rodar build de front quando só o back mudou.
+Replicar a esteira do ContratoIA neste monorepo: CI com cobertura mínima 90%, security scanning (CodeQL + Trivy + Dependency Review), auto-PRs por branch e imagem Docker no GHCR. Diferença estrutural: **ContratoIA tem 3 repos; DinDin é monorepo** → um único `.github/workflows/` com filtros de path (`api/**`, `web/**`) para não rodar build de front quando só o back mudou.
 
 ## Pré-requisito manual (USUÁRIO)
 
-- ~~Criar repo no GitHub e push da `main`~~ ✅ feito em 2026-07-08 (`JokerFoxyy/FinanceIA`, main + develop publicadas)
+- ~~Criar repo no GitHub e push da `main`~~ ✅ feito em 2026-07-08 (`JokerFoxyy/DinDin`, main + develop publicadas)
 - Branch protection em `main` e `develop`: só merge via PR aprovado (igual ContratoIA — **nunca push direto**). Config no GitHub: Settings → Branches → Add rule (**pendente, USUÁRIO**).
 
 ## Workflows planejados
@@ -19,7 +19,7 @@ Espelho do `ci.yml` do contrato-ia-backend, com adaptações:
 - Triggers: push em `main`, `develop`, `feature/**` + PRs para `main`/`develop`, com `paths: [api/**]`.
 - `concurrency` com cancel-in-progress.
 - Job `build-and-test` (ubuntu, JDK 21 temurin, cache maven): `mvn clean verify -B` em `api/`.
-  - **Sem service container de Postgres**: FinanceIA usa Testcontainers (o runner do GH Actions tem Docker) — mais fiel ao ambiente local que o service container do ContratoIA.
+  - **Sem service container de Postgres**: DinDin usa Testcontainers (o runner do GH Actions tem Docker) — mais fiel ao ambiente local que o service container do ContratoIA.
   - Upload de artifacts: `surefire-reports/` e `site/jacoco/` (retenção 7 dias) + coverage summary no `$GITHUB_STEP_SUMMARY`.
   - **Cobertura 90% é enforçada pelo próprio JaCoCo no `verify`** (regra no pom desde a sessão #2) — build vermelho abaixo disso.
 - Job `docker` (só push na `main`): build da imagem `api/Dockerfile` e push para GHCR com tags `sha`, `latest`, `datetime` (metadata-action), cache GHA.

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## O que é este projeto
 
-FinanceIA (FinApp): app de gestão financeira pessoal que substitui a Planilha_Gastos_2026 — transações, contas/cartões com fatura, fixos recorrentes, orçamentos, dashboard, investimentos e metas. Uso pessoal com potencial de virar SaaS.
+DinDin (DinDin): app de gestão financeira pessoal que substitui a Planilha_Gastos_2026 — transações, contas/cartões com fatura, fixos recorrentes, orçamentos, dashboard, investimentos e metas. Uso pessoal com potencial de virar SaaS.
 
 **Estado atual: repositório em fase de planejamento — ainda não há código.** Antes de implementar qualquer coisa, leia:
 
@@ -82,7 +82,7 @@ JWT próprio HS256 (jjwt): `POST /api/v1/auth/register` (201) e `/login` retorna
 
 ## Git workflow
 
-Remote: `https://github.com/JokerFoxyy/FinanceIA.git`. Mesmo fluxo do ContratoIA:
+Remote: `https://github.com/JokerFoxyy/DinDin.git`. Mesmo fluxo do ContratoIA:
 
 1. **Ao iniciar qualquer feature/sessão, criar uma branch a partir de `develop`**: `git checkout develop && git checkout -b feature/<descricao-kebab>` (ex.: `feature/auth-jwt`, `feature/setup-frontend`). Nunca trabalhar direto na `main` ou `develop`.
 2. Commitar na feature branch (commits pequenos e coerentes) e **sempre dar push para o GitHub**: `git push -u origin feature/<descricao-kebab>`. Trabalho não termina sem push — commit local só não conta.

@@ -17,7 +17,7 @@ Monorepo funcional com Postgres em Docker e API Spring Boot subindo com migratio
 |---|---|---|
 | Build | Maven + wrapper (`mvnw`) | Padrão da stack do usuário (ContratoIA) |
 | Spring Boot | 3.5.x (última patch) | Já endurecido no ContratoIA (3.5.14) |
-| GroupId/pacote | `com.financeia.api` | Simples, monorepo `api/` |
+| GroupId/pacote | `com.dindin.api` | Simples, monorepo `api/` |
 | Postgres | 16-alpine, porta 5433 no host | 5433 evita conflito com Postgres local/ContratoIA |
 | Flyway V1 | apenas `users` | Auth completa é sessão #2; V1 já deixa a base |
 | Security | **fora** desta sessão | Sem Spring Security agora — endpoints abertos até #2 |
