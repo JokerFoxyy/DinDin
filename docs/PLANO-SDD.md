@@ -97,7 +97,7 @@ Pré-req: #3.
 Tasks: (1) migration V3 + CRUD com validações (conta obrigatória, BigDecimal); (2) regra de vínculo à fatura pelo closing_day; (3) filtros por mês/conta/categoria + paginação; (4) testes + verificação.
 Pré-req: #5.
 
-**#7 — Transações (frontend)**
+**#7 — Transações (frontend)** ✅ CONCLUÍDA (2026-07-09 — SDD: `docs/session-07-transacoes-frontend/SDD.md`)
 Tasks: (1) tabela mensal com tags coloridas de categoria (como no protótipo); (2) modal de lançamento rápido (data = hoje, última conta usada); (3) edição/exclusão + filtros; (4) verificação.
 Pré-req: #6.
 
