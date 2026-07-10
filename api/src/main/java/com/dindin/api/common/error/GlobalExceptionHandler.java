@@ -39,6 +39,24 @@ public class GlobalExceptionHandler {
 		return ApiError.of(HttpStatus.UNAUTHORIZED.value(), ex.getMessage());
 	}
 
+	@ExceptionHandler(NotFoundException.class)
+	@ResponseStatus(HttpStatus.NOT_FOUND)
+	public ApiError handleNotFound(NotFoundException ex) {
+		return ApiError.of(HttpStatus.NOT_FOUND.value(), ex.getMessage());
+	}
+
+	@ExceptionHandler(DuplicateResourceException.class)
+	@ResponseStatus(HttpStatus.CONFLICT)
+	public ApiError handleDuplicateResource(DuplicateResourceException ex) {
+		return ApiError.of(HttpStatus.CONFLICT.value(), ex.getMessage());
+	}
+
+	@ExceptionHandler(BusinessException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public ApiError handleBusiness(BusinessException ex) {
+		return ApiError.of(HttpStatus.BAD_REQUEST.value(), ex.getMessage());
+	}
+
 	@ExceptionHandler(Exception.class)
 	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 	public ApiError handleUnexpected(Exception ex) {
