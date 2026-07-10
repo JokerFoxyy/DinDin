@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## O que é este projeto
 
-DinDin (DinDin): app de gestão financeira pessoal que substitui a Planilha_Gastos_2026 — transações, contas/cartões com fatura, fixos recorrentes, orçamentos, dashboard, investimentos e metas. Uso pessoal com potencial de virar SaaS.
+DinDin: app de gestão financeira pessoal que substitui a Planilha_Gastos_2026 — transações, contas/cartões com fatura, fixos recorrentes, orçamentos, dashboard, investimentos e metas. Uso pessoal com potencial de virar SaaS.
 
-**Estado atual: repositório em fase de planejamento — ainda não há código.** Antes de implementar qualquer coisa, leia:
+Antes de implementar qualquer coisa, leia:
 
 - `docs/PLANO-SDD.md` — documento-mestre: stack, sessões planejadas (#1–#21), grafo de dependências e regras de negócio. **É a fonte de verdade do roadmap.**
 - `../spec-app-financeiro.md` (fora do repo, na pasta pai) — spec completa com modelo de dados e fases.
@@ -62,6 +62,18 @@ cd api && ./mvnw verify
 
 # Rodar a API
 ./mvnw spring-boot:run
+
+# Web — dev server em http://localhost:4200 (proxy /api → localhost:8080)
+cd web && npm start
+
+# Web — testes com cobertura (o que o CI roda; thresholds quebram o build)
+npm run test:ci
+
+# Um spec só
+npm test -- --include='**/auth.service.spec.ts' --watch=false --browsers=ChromeHeadless
+
+# Web — build de produção
+npm run build:prod
 ```
 
 **Gotcha de JDK:** o `java` default da máquina é 19; o projeto exige 21. Antes de qualquer comando Maven: `$env:JAVA_HOME = "C:\Program Files\Java\jdk-21"` (PowerShell). Os testes de integração usam Testcontainers — Docker Desktop precisa estar de pé, senão o contexto falha com "find a Docker environment failed".
@@ -76,6 +88,12 @@ cd api && ./mvnw verify
 - Segurança: deny-by-default no `SecurityConfig` — todo endpoint novo é autenticado a menos que explicitamente liberado; `@Valid` em todo request DTO; segredos só via env var.
 - CLAUDE.md e README devem ser atualizados no mesmo commit que muda comandos, endpoints ou arquitetura.
 
+## Frontend (sessão #3)
+
+Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/postcss` (`.postcssrc.json`); tema dark do protótipo em `src/styles.css` (variáveis CSS globais + classes `.panel`, `.card`, `.btn`, `.tag`...). Estrutura: `core/auth` (AuthService com signals, interceptor funcional, `authGuard`), `core/layout/shell` (sidebar), `features/<nome>` (uma pasta por página, lazy via `loadComponent`), `shared/`. API sempre por caminho relativo `/api/...` — em dev o `proxy.conf.json` encaminha para `localhost:8080` (não usar URL absoluta nem CORS). Token JWT em `localStorage` (`dindin.token`).
+
+**Gotcha do Karma:** o `karma.conf.js` referenciado pelo builder `@angular/build:karma` **substitui** a config default em vez de mesclar — se recriar, use `ng generate config karma` e edite (senão os testes quebram com "describe is not defined"). Os thresholds de cobertura (90/80/90/90) vivem no `coverageReporter.check` desse arquivo.
+
 ## Auth (sessão #2)
 
 JWT próprio HS256 (jjwt): `POST /api/v1/auth/register` (201) e `/login` retornam `{token, tokenType, expiresInSeconds}`; `GET /api/v1/auth/me` prova o token. `JwtAuthFilter` popula o SecurityContext com `AuthenticatedUser(id, email)` — controllers recebem via `@AuthenticationPrincipal`. Config: `JWT_SECRET` (≥32 bytes) e `JWT_EXPIRATION` (ISO-8601, default PT2H). Públicos: register/login, health, swagger. Erros padronizados pelo `GlobalExceptionHandler` (400 com `fieldErrors`, 401, 409, 500).
@@ -86,7 +104,7 @@ Remote: `https://github.com/JokerFoxyy/DinDin.git`. Mesmo fluxo do ContratoIA:
 
 1. **Ao iniciar qualquer feature/sessão, criar uma branch a partir de `develop`**: `git checkout develop && git checkout -b feature/<descricao-kebab>` (ex.: `feature/auth-jwt`, `feature/setup-frontend`). Nunca trabalhar direto na `main` ou `develop`.
 2. Commitar na feature branch (commits pequenos e coerentes) e **sempre dar push para o GitHub**: `git push -u origin feature/<descricao-kebab>`. Trabalho não termina sem push — commit local só não conta.
-3. Merge em `develop` via PR (a partir da sessão #4, um Action cria o PR automaticamente no push da feature branch; até lá, criar com `gh pr create` ou merge local + push).
-4. `develop → main` também só via PR de release.
+3. Merge em `develop` via PR — o workflow `feature-pr.yml` cria o PR automaticamente no push da feature branch.
+4. `develop → main` só via PR de release (criado automaticamente pelo `auto-pr.yml` no push da develop).
 
-Enquanto a branch protection não estiver configurada no GitHub (pré-req da sessão #4), a disciplina é a mesma — o hábito não muda.
+CI (`.github/workflows/`): `ci-api.yml` (mvnw verify com Testcontainers + JaCoCo 90%; imagem Docker → GHCR na main) e `ci-web.yml` (lint, build:prod, test:ci com thresholds) usam **filtros de path** — mudança só em `api/` não roda CI do front e vice-versa; ao editar um workflow, o próprio arquivo está nos paths. `security.yml`: CodeQL (Java e TS), Trivy fs (+ imagem na main), Dependency Review em PRs, cron semanal.
