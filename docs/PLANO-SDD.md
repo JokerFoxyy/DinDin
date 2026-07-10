@@ -89,7 +89,7 @@ Pré-req: #1–#3 (pode rodar em paralelo com #5+).
 
 ### Fase 1 — MVP (substitui a planilha)
 
-**#5 — Contas & Categorias**
+**#5 — Contas & Categorias** ✅ CONCLUÍDA (2026-07-09 — SDD: `docs/session-05-contas-categorias/SDD.md`)
 Tasks: (1) migration V2 + CRUD `accounts` (tipos, closing/due day); (2) CRUD `categories` (icon, cor, kind); (3) tela Configurações no Angular; (4) verificação.
 Pré-req: #3.
 

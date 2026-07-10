@@ -1,0 +1,78 @@
+<div class="panel">
+  <div class="panel-header">
+    <h2>Contas &amp; cartões</h2>
+    @if (!showForm()) {
+      <button class="btn" (click)="openCreate()">+ Nova conta</button>
+    }
+  </div>
+
+  @if (errorMessage(); as message) {
+    <div class="form-error" role="alert">{{ message }}</div>
+  }
+
+  @if (showForm()) {
+    <form [formGroup]="form" (ngSubmit)="submit()" class="inline-form">
+      <div class="field">
+        <label for="account-name">Nome</label>
+        <input id="account-name" type="text" formControlName="name" placeholder="Ex.: Nubank" />
+        @if (form.controls.name.touched && form.controls.name.invalid) {
+          <div class="error">Informe o nome da conta</div>
+        }
+      </div>
+      <div class="field">
+        <label for="account-type">Tipo</label>
+        <select id="account-type" formControlName="type">
+          @for (option of typeOptions; track option) {
+            <option [value]="option">{{ typeLabels[option] }}</option>
+          }
+        </select>
+      </div>
+      @if (isCreditCard()) {
+        <div class="days-row">
+          <div class="field">
+            <label for="closing-day">Dia de fechamento</label>
+            <input id="closing-day" type="number" min="1" max="31" formControlName="closingDay" />
+          </div>
+          <div class="field">
+            <label for="due-day">Dia de vencimento</label>
+            <input id="due-day" type="number" min="1" max="31" formControlName="dueDay" />
+          </div>
+        </div>
+      }
+      <div class="form-actions">
+        <button class="btn" type="submit">{{ editing() ? 'Salvar' : 'Criar' }}</button>
+        <button class="btn-ghost" type="button" (click)="cancel()">Cancelar</button>
+      </div>
+    </form>
+  }
+
+  @if (accounts().length === 0 && !showForm()) {
+    <p class="empty">Nenhuma conta ainda. Crie a primeira — todo lançamento precisa de uma conta.</p>
+  } @else if (accounts().length > 0) {
+    <table>
+      <tr>
+        <th>Nome</th>
+        <th>Tipo</th>
+        <th>Fatura</th>
+        <th></th>
+      </tr>
+      @for (account of accounts(); track account.id) {
+        <tr>
+          <td>{{ account.name }}</td>
+          <td>{{ typeLabels[account.type] }}</td>
+          <td>
+            @if (account.type === 'CREDIT_CARD') {
+              fecha dia {{ account.closingDay }} · vence dia {{ account.dueDay }}
+            } @else {
+              —
+            }
+          </td>
+          <td class="row-actions">
+            <button class="link" (click)="openEdit(account)">Editar</button>
+            <button class="link danger" (click)="remove(account)">Excluir</button>
+          </td>
+        </tr>
+      }
+    </table>
+  }
+</div>

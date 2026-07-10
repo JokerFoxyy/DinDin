@@ -1,0 +1,99 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { of, throwError } from 'rxjs';
+
+import { AccountsPanel } from './accounts-panel';
+import { AccountService } from './account.service';
+import { Account } from './settings.models';
+
+describe('AccountsPanel', () => {
+  let fixture: ComponentFixture<AccountsPanel>;
+  let component: AccountsPanel;
+  let accountService: jasmine.SpyObj<AccountService>;
+
+  const nubank: Account = { id: '1', name: 'Nubank', type: 'CREDIT_CARD', closingDay: 28, dueDay: 7 };
+  const uniclass: Account = { id: '2', name: 'Uniclass', type: 'CHECKING', closingDay: null, dueDay: null };
+
+  beforeEach(async () => {
+    accountService = jasmine.createSpyObj<AccountService>('AccountService', ['list', 'create', 'update', 'delete']);
+    accountService.list.and.returnValue(of([nubank, uniclass]));
+
+    await TestBed.configureTestingModule({
+      imports: [AccountsPanel],
+      providers: [{ provide: AccountService, useValue: accountService }]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(AccountsPanel);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should list accounts on init with pt-BR type labels', () => {
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Nubank');
+    expect(text).toContain('Cartão de crédito');
+    expect(text).toContain('fecha dia 28');
+    expect(text).toContain('Conta corrente');
+  });
+
+  it('should create an account when form is valid', () => {
+    accountService.create.and.returnValue(of(uniclass));
+
+    component.openCreate();
+    component.form.setValue({ name: 'Carteira', type: 'CASH', closingDay: null, dueDay: null });
+    component.submit();
+
+    expect(accountService.create).toHaveBeenCalledWith(
+      jasmine.objectContaining({ name: 'Carteira', type: 'CASH' })
+    );
+    expect(component.showForm()).toBeFalse();
+    expect(accountService.list).toHaveBeenCalledTimes(2);
+  });
+
+  it('should not call the service when name is empty', () => {
+    component.openCreate();
+    component.form.setValue({ name: '', type: 'CHECKING', closingDay: null, dueDay: null });
+
+    component.submit();
+
+    expect(accountService.create).not.toHaveBeenCalled();
+  });
+
+  it('should require invoice days when type is credit card', () => {
+    component.openCreate();
+    component.form.setValue({ name: 'Black', type: 'CREDIT_CARD', closingDay: null, dueDay: null });
+
+    component.submit();
+
+    expect(accountService.create).not.toHaveBeenCalled();
+    expect(component.errorMessage()).toContain('fechamento');
+  });
+
+  it('should update the account when editing', () => {
+    accountService.update.and.returnValue(of(nubank));
+
+    component.openEdit(nubank);
+    component.form.patchValue({ name: 'Nubank UV' });
+    component.submit();
+
+    expect(accountService.update).toHaveBeenCalledWith('1', jasmine.objectContaining({ name: 'Nubank UV' }));
+  });
+
+  it('should delete the account and reload the list', () => {
+    accountService.delete.and.returnValue(of(void 0));
+
+    component.remove(nubank);
+
+    expect(accountService.delete).toHaveBeenCalledWith('1');
+    expect(accountService.list).toHaveBeenCalledTimes(2);
+  });
+
+  it('should show error message when save fails', () => {
+    accountService.create.and.returnValue(throwError(() => new Error('500')));
+
+    component.openCreate();
+    component.form.setValue({ name: 'Carteira', type: 'CASH', closingDay: null, dueDay: null });
+    component.submit();
+
+    expect(component.errorMessage()).toContain('Erro ao salvar');
+  });
+});
