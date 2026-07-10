@@ -1,0 +1,156 @@
+<div class="topbar">
+  <h1>Transações</h1>
+  <div class="topbar-actions">
+    <app-month-picker [month]="month()" (monthChange)="onMonthChange($event)" />
+    <button class="btn" (click)="openCreate()" [disabled]="accounts().length === 0 || categories().length === 0">
+      + Nova transação
+    </button>
+  </div>
+</div>
+
+@if (accounts().length === 0 || categories().length === 0) {
+  <div class="panel setup-hint">
+    Para lançar transações, primeiro crie ao menos uma conta e uma categoria em <strong>Configurações</strong>.
+  </div>
+}
+
+@if (errorMessage(); as message) {
+  <div class="form-error" role="alert">{{ message }}</div>
+}
+
+<div class="panel">
+  <form [formGroup]="filterForm" class="filters">
+    <select formControlName="accountId" aria-label="Filtrar por conta" (change)="onFiltersChange()">
+      <option value="">Todas as contas</option>
+      @for (account of accounts(); track account.id) {
+        <option [value]="account.id">{{ account.name }}</option>
+      }
+    </select>
+    <select formControlName="categoryId" aria-label="Filtrar por categoria" (change)="onFiltersChange()">
+      <option value="">Todas as categorias</option>
+      @for (category of categories(); track category.id) {
+        <option [value]="category.id">{{ category.name }}</option>
+      }
+    </select>
+    <select formControlName="type" aria-label="Filtrar por tipo" (change)="onFiltersChange()">
+      <option value="">Todos os tipos</option>
+      <option value="EXPENSE">Gastos</option>
+      <option value="INCOME">Entradas</option>
+    </select>
+    <span class="count">{{ totalElements() }} lançamento(s)</span>
+  </form>
+
+  @if (transactions().length === 0) {
+    <p class="empty">Nenhum lançamento neste mês.</p>
+  } @else {
+    <table>
+      <tr>
+        <th>Data</th>
+        <th>Descrição</th>
+        <th>Conta</th>
+        <th>Categoria</th>
+        <th class="amount-col">Valor</th>
+        <th></th>
+      </tr>
+      @for (transaction of transactions(); track transaction.id) {
+        <tr>
+          <td>{{ transaction.date | date: 'dd/MM' }}</td>
+          <td>{{ transaction.description }}</td>
+          <td>
+            {{ transaction.accountName }}
+            @if (transaction.invoiceMonth) {
+              <span class="invoice-hint">fatura {{ transaction.invoiceMonth | date: 'MMM/yy' }}</span>
+            }
+          </td>
+          <td>
+            @if (transaction.categoryName) {
+              <span class="tag" [style.background]="(transaction.categoryColor ?? '#4f8ef7') + '26'"
+                    [style.color]="transaction.categoryColor ?? '#4f8ef7'">
+                {{ transaction.categoryIcon }} {{ transaction.categoryName }}
+              </span>
+            }
+          </td>
+          <td class="amount-col" [class.pos]="transaction.type === 'INCOME'">
+            {{ transaction.type === 'INCOME' ? '+' : '' }}{{ transaction.amount | currency: 'BRL' }}
+          </td>
+          <td class="row-actions">
+            @if (transaction.type !== 'INVOICE_ADJUSTMENT') {
+              <button class="link" (click)="openEdit(transaction)">Editar</button>
+            }
+            <button class="link danger" (click)="remove(transaction)">Excluir</button>
+          </td>
+        </tr>
+      }
+    </table>
+
+    @if (totalPages() > 1) {
+      <div class="pagination">
+        <button class="link" [disabled]="page() === 0" (click)="goToPage(page() - 1)">‹ Anterior</button>
+        <span>página {{ page() + 1 }} de {{ totalPages() }}</span>
+        <button class="link" [disabled]="page() >= totalPages() - 1" (click)="goToPage(page() + 1)">Próxima ›</button>
+      </div>
+    }
+  }
+</div>
+
+@if (modalOpen()) {
+  <div class="modal-backdrop" (click)="closeModal()">
+    <div class="modal panel" (click)="$event.stopPropagation()">
+      <h2>{{ editing() ? 'Editar lançamento' : 'Nova transação' }}</h2>
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <div class="field">
+          <label for="t-description">Descrição</label>
+          <input id="t-description" type="text" formControlName="description" placeholder="Ex.: Padaria" />
+          @if (form.controls.description.touched && form.controls.description.invalid) {
+            <div class="error">Informe a descrição</div>
+          }
+        </div>
+        <div class="modal-row">
+          <div class="field">
+            <label for="t-amount">Valor (R$)</label>
+            <input id="t-amount" type="number" step="0.01" min="0.01" formControlName="amount" />
+            @if (form.controls.amount.touched && form.controls.amount.invalid) {
+              <div class="error">Informe um valor maior que zero</div>
+            }
+          </div>
+          <div class="field">
+            <label for="t-date">Data</label>
+            <input id="t-date" type="date" formControlName="date" />
+          </div>
+        </div>
+        <div class="modal-row">
+          <div class="field">
+            <label for="t-type">Tipo</label>
+            <select id="t-type" formControlName="type" (change)="onTypeChange()">
+              <option value="EXPENSE">Gasto</option>
+              <option value="INCOME">Entrada</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="t-account">Conta</label>
+            <select id="t-account" formControlName="accountId">
+              @for (account of accounts(); track account.id) {
+                <option [value]="account.id">{{ account.name }}</option>
+              }
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="t-category">Categoria</label>
+          <select id="t-category" formControlName="categoryId">
+            @for (category of categoriesForType(); track category.id) {
+              <option [value]="category.id">{{ category.icon }} {{ category.name }}</option>
+            }
+          </select>
+          @if (form.controls.categoryId.touched && form.controls.categoryId.invalid) {
+            <div class="error">Escolha uma categoria</div>
+          }
+        </div>
+        <div class="form-actions">
+          <button class="btn" type="submit">{{ editing() ? 'Salvar' : 'Lançar' }}</button>
+          <button class="btn-ghost" type="button" (click)="closeModal()">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
