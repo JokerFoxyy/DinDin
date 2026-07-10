@@ -93,7 +93,7 @@ Pré-req: #1–#3 (pode rodar em paralelo com #5+).
 Tasks: (1) migration V2 + CRUD `accounts` (tipos, closing/due day); (2) CRUD `categories` (icon, cor, kind); (3) tela Configurações no Angular; (4) verificação.
 Pré-req: #3.
 
-**#6 — Transações (backend)**
+**#6 — Transações (backend)** ✅ CONCLUÍDA (2026-07-09 — SDD: `docs/session-06-transacoes-backend/SDD.md`)
 Tasks: (1) migration V3 + CRUD com validações (conta obrigatória, BigDecimal); (2) regra de vínculo à fatura pelo closing_day; (3) filtros por mês/conta/categoria + paginação; (4) testes + verificação.
 Pré-req: #5.
 

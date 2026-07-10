@@ -57,6 +57,13 @@ public class GlobalExceptionHandler {
 		return ApiError.of(HttpStatus.BAD_REQUEST.value(), ex.getMessage());
 	}
 
+	@ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+	@ResponseStatus(HttpStatus.CONFLICT)
+	public ApiError handleDataIntegrity(org.springframework.dao.DataIntegrityViolationException ex) {
+		return ApiError.of(HttpStatus.CONFLICT.value(),
+				"Registro em uso por outros dados (ex.: transações) e não pode ser alterado/excluído");
+	}
+
 	@ExceptionHandler(Exception.class)
 	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 	public ApiError handleUnexpected(Exception ex) {
