@@ -32,12 +32,17 @@ export class Shell implements OnInit {
 
   ngOnInit(): void {
     this.authService.loadCurrentUser().subscribe({
-      error: () => this.logout()
+      error: () => {
+        this.authService.clearSession();
+        this.router.navigate(['/login']);
+      }
     });
   }
 
   logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
+    this.authService.logout().subscribe({
+      next: () => this.router.navigate(['/login']),
+      error: () => this.router.navigate(['/login'])
+    });
   }
 }

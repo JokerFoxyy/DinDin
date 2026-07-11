@@ -1,0 +1,12 @@
+# Perfil de produção — ativar com SPRING_PROFILES_ACTIVE=prod
+# Segredos NÃO têm default aqui: o SecretsValidator falha o startup se não vierem do ambiente.
+app:
+  security:
+    cookie-secure: true
+
+# Swagger/OpenAPI desligados em produção (não expor o contrato publicamente)
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

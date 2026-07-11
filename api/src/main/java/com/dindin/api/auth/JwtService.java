@@ -24,9 +24,13 @@ public class JwtService {
 
 	public JwtService(
 			@Value("${app.jwt.secret}") String secret,
-			@Value("${app.jwt.expiration}") Duration expiration) {
+			@Value("${app.jwt.access-expiration}") Duration expiration) {
 		this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
 		this.expiration = expiration;
+	}
+
+	public Duration expiration() {
+		return expiration;
 	}
 
 	public String generateToken(User user) {

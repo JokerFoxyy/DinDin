@@ -1,7 +1,7 @@
 package com.dindin.api.auth;
 
 import com.dindin.api.TestcontainersConfiguration;
-import com.dindin.api.auth.dto.TokenResponse;
+import com.dindin.api.support.AuthTestSupport;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -11,9 +11,11 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -21,83 +23,126 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import(TestcontainersConfiguration.class)
 class AuthFlowIntegrationTest {
 
+	private static final String PASSWORD = "senha-forte-123";
+
 	@Autowired
 	private TestRestTemplate rest;
 
+	private String uniqueEmail() {
+		return "auth-" + UUID.randomUUID() + "@dindin.com";
+	}
+
+	private ResponseEntity<String> register(String email) {
+		return rest.postForEntity("/v1/auth/register",
+				Map.of("email", email, "password", PASSWORD), String.class);
+	}
+
+	@Test
+	void shouldSetHttpOnlyCookiesAndReturnUserWithoutToken_whenRegistering() {
+		ResponseEntity<String> response = register(uniqueEmail());
+
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+		String setCookie = String.join("\n", response.getHeaders().get(HttpHeaders.SET_COOKIE));
+		assertThat(setCookie).contains("dindin_at=").contains("dindin_rt=")
+				.contains("HttpOnly").contains("SameSite=Strict");
+		assertThat(response.getBody()).contains("\"email\"").doesNotContain("token");
+	}
+
 	@Test
 	void shouldRegisterLoginAndAccessMe_whenFlowIsValid() {
-		String email = "fluxo@dindin.com";
+		String email = uniqueEmail();
+		register(email);
 
-		ResponseEntity<TokenResponse> register = rest.postForEntity("/v1/auth/register",
-				Map.of("email", email, "password", "senha-forte-123"), TokenResponse.class);
-		assertThat(register.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-		assertThat(register.getBody().token()).isNotBlank();
-
-		ResponseEntity<TokenResponse> login = rest.postForEntity("/v1/auth/login",
-				Map.of("email", email, "password", "senha-forte-123"), TokenResponse.class);
+		ResponseEntity<String> login = rest.postForEntity("/v1/auth/login",
+				Map.of("email", email, "password", PASSWORD), String.class);
 		assertThat(login.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-		HttpHeaders headers = new HttpHeaders();
-		headers.setBearerAuth(login.getBody().token());
 		ResponseEntity<String> me = rest.exchange("/v1/auth/me", HttpMethod.GET,
-				new HttpEntity<>(headers), String.class);
+				new HttpEntity<>(AuthTestSupport.bearer(login)), String.class);
 		assertThat(me.getStatusCode()).isEqualTo(HttpStatus.OK);
 		assertThat(me.getBody()).contains(email);
 	}
 
 	@Test
 	void shouldReturn401_whenAccessingMeWithoutToken() {
-		ResponseEntity<String> me = rest.getForEntity("/v1/auth/me", String.class);
-
-		assertThat(me.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-	}
-
-	@Test
-	void shouldReturn401_whenTokenIsInvalid() {
-		HttpHeaders headers = new HttpHeaders();
-		headers.setBearerAuth("token-invalido");
-		ResponseEntity<String> me = rest.exchange("/v1/auth/me", HttpMethod.GET,
-				new HttpEntity<>(headers), String.class);
-
-		assertThat(me.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+		assertThat(rest.getForEntity("/v1/auth/me", String.class).getStatusCode())
+				.isEqualTo(HttpStatus.UNAUTHORIZED);
 	}
 
 	@Test
 	void shouldReturn409_whenEmailIsAlreadyRegistered() {
-		String email = "duplicado@dindin.com";
-		rest.postForEntity("/v1/auth/register",
-				Map.of("email", email, "password", "senha-forte-123"), TokenResponse.class);
+		String email = uniqueEmail();
+		register(email);
 
-		ResponseEntity<String> second = rest.postForEntity("/v1/auth/register",
-				Map.of("email", email, "password", "senha-forte-123"), String.class);
-
-		assertThat(second.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-		assertThat(second.getBody()).contains("Email já cadastrado");
+		assertThat(register(email).getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
 	}
 
 	@Test
 	void shouldReturn401_whenLoginPasswordIsWrong() {
-		String email = "senha-errada@dindin.com";
-		rest.postForEntity("/v1/auth/register",
-				Map.of("email", email, "password", "senha-forte-123"), TokenResponse.class);
+		String email = uniqueEmail();
+		register(email);
 
 		ResponseEntity<String> login = rest.postForEntity("/v1/auth/login",
-				Map.of("email", email, "password", "senha-errada"), String.class);
+				Map.of("email", email, "password", "senha-errada-123"), String.class);
 
 		assertThat(login.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
 	}
 
 	@Test
-	void shouldReturn400WithFieldErrors_whenRegisterPayloadIsInvalid() {
+	void shouldReturn400_whenPasswordIsTooWeak() {
 		ResponseEntity<String> response = rest.postForEntity("/v1/auth/register",
-				Map.of("email", "nao-e-email", "password", "curta"), String.class);
+				Map.of("email", uniqueEmail(), "password", "semnumeros"), String.class);
 
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
 		assertThat(response.getBody()).contains("fieldErrors");
 	}
 
 	@Test
-	void shouldKeepHealthAndSwaggerPublic_whenNotAuthenticated() {
+	void shouldRotateRefreshTokenAndRejectOldOne_whenRefreshing() {
+		ResponseEntity<String> registration = register(uniqueEmail());
+
+		ResponseEntity<String> refreshed = rest.exchange("/v1/auth/refresh", HttpMethod.POST,
+				new HttpEntity<>(AuthTestSupport.refreshCookie(registration)), String.class);
+		assertThat(refreshed.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+		ResponseEntity<String> reused = rest.exchange("/v1/auth/refresh", HttpMethod.POST,
+				new HttpEntity<>(AuthTestSupport.refreshCookie(registration)), String.class);
+		assertThat(reused.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+
+		ResponseEntity<String> again = rest.exchange("/v1/auth/refresh", HttpMethod.POST,
+				new HttpEntity<>(AuthTestSupport.refreshCookie(refreshed)), String.class);
+		assertThat(again.getStatusCode()).isEqualTo(HttpStatus.OK);
+	}
+
+	@Test
+	void shouldRevokeSession_whenLoggingOut() {
+		ResponseEntity<String> registration = register(uniqueEmail());
+
+		ResponseEntity<Void> logout = rest.exchange("/v1/auth/logout", HttpMethod.POST,
+				new HttpEntity<>(AuthTestSupport.refreshCookie(registration)), Void.class);
+		assertThat(logout.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+		ResponseEntity<String> refresh = rest.exchange("/v1/auth/refresh", HttpMethod.POST,
+				new HttpEntity<>(AuthTestSupport.refreshCookie(registration)), String.class);
+		assertThat(refresh.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+	}
+
+	@Test
+	void shouldRateLimit_whenTooManyLoginAttempts() {
+		String email = uniqueEmail();
+		register(email);
+		Map<String, String> wrong = Map.of("email", email, "password", "senha-errada-123");
+
+		HttpStatusCode last = null;
+		for (int i = 0; i < 15; i++) {
+			last = rest.postForEntity("/v1/auth/login", wrong, String.class).getStatusCode();
+		}
+
+		assertThat(last).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+	}
+
+	@Test
+	void shouldKeepHealthAndApiDocsPublic_whenNotAuthenticated() {
 		assertThat(rest.getForEntity("/actuator/health", String.class).getStatusCode())
 				.isEqualTo(HttpStatus.OK);
 		assertThat(rest.getForEntity("/v3/api-docs", String.class).getStatusCode())

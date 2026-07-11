@@ -1,0 +1,23 @@
+<div class="panel">
+  <h2>Privacidade &amp; dados (LGPD)</h2>
+  <p class="hint">Seus dados são seus. Exporte-os quando quiser ou apague sua conta por completo.</p>
+
+  @if (errorMessage(); as message) {
+    <div class="form-error" role="alert">{{ message }}</div>
+  }
+
+  <button class="btn" type="button" (click)="exportData()">Exportar meus dados (JSON)</button>
+
+  <div class="delete-box">
+    <h3>Excluir minha conta</h3>
+    <p>
+      Apaga <strong>permanentemente</strong> todos os seus lançamentos, contas, categorias e faturas.
+      Esta ação não pode ser desfeita. Digite <strong>EXCLUIR</strong> para confirmar.
+    </p>
+    <input type="text" placeholder="EXCLUIR" aria-label="Confirmação de exclusão"
+           (input)="onConfirmInput($any($event.target).value)" />
+    <button class="btn-danger" type="button" [disabled]="!canDelete()" (click)="deleteAccount()">
+      Excluir minha conta
+    </button>
+  </div>
+</div>
