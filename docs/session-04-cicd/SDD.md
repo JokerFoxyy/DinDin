@@ -34,8 +34,7 @@ Espelho do `ci.yml` do contrato-ia-frontend:
 ### TASK-3 — `security.yml`
 Espelho do security.yml do ContratoIA, unificado para o monorepo:
 - Triggers: push/PR em `main`/`develop` + cron semanal (segunda 6h UTC) para novas CVEs.
-- Job `codeql-java`: CodeQL `java-kotlin`, queries `security-and-quality`, `mvn compile -DskipTests`.
-- Job `codeql-js`: CodeQL `javascript-typescript` (equivalente ao scan do repo frontend).
+- Job `codeql` (nome do check: **"CodeQL Analysis"**, exigido pelo ruleset `merging-block`): analisa `java-kotlin` + `javascript-typescript` numa passada (build Maven faz o tracing do Java). *Antes eram dois jobs separados (`codeql-java`/`codeql-js`) — unificados em 2026-07-11 para casar com o required status check.*
 - Job `dependency-check`: Trivy fs scan (CRITICAL,HIGH) → SARIF → GitHub Security.
 - Job `container-scan` (só main): Trivy na imagem Docker da API.
 - Job `dependency-review` (só PRs): `dependency-review-action`, `fail-on-severity: critical`, comenta no PR.
