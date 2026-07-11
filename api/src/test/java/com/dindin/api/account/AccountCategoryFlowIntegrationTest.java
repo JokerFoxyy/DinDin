@@ -1,7 +1,7 @@
 package com.dindin.api.account;
 
 import com.dindin.api.TestcontainersConfiguration;
-import com.dindin.api.auth.dto.TokenResponse;
+import com.dindin.api.support.AuthTestSupport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,10 +31,9 @@ class AccountCategoryFlowIntegrationTest {
 	@BeforeEach
 	void authenticate() {
 		String email = "contas-" + UUID.randomUUID() + "@dindin.com";
-		ResponseEntity<TokenResponse> register = rest.postForEntity("/v1/auth/register",
-				Map.of("email", email, "password", "senha-forte-123"), TokenResponse.class);
-		headers = new HttpHeaders();
-		headers.setBearerAuth(register.getBody().token());
+		ResponseEntity<String> register = rest.postForEntity("/v1/auth/register",
+				Map.of("email", email, "password", "senha-forte-123"), String.class);
+		headers = AuthTestSupport.bearer(register);
 	}
 
 	private <T> ResponseEntity<T> exchange(HttpMethod method, String url, Object body, Class<T> type) {
@@ -108,10 +107,9 @@ class AccountCategoryFlowIntegrationTest {
 
 		// segundo usuário tenta acessar a conta do primeiro
 		String otherEmail = "intruso-" + UUID.randomUUID() + "@dindin.com";
-		TokenResponse other = rest.postForEntity("/v1/auth/register",
-				Map.of("email", otherEmail, "password", "senha-forte-123"), TokenResponse.class).getBody();
-		HttpHeaders otherHeaders = new HttpHeaders();
-		otherHeaders.setBearerAuth(other.token());
+		ResponseEntity<String> other = rest.postForEntity("/v1/auth/register",
+				Map.of("email", otherEmail, "password", "senha-forte-123"), String.class);
+		HttpHeaders otherHeaders = AuthTestSupport.bearer(other);
 
 		ResponseEntity<String> stolen = rest.exchange("/v1/accounts/" + id, HttpMethod.PUT,
 				new HttpEntity<>(Map.of("name", "Hackeada", "type", "CHECKING"), otherHeaders), String.class);

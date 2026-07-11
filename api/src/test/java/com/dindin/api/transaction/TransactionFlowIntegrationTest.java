@@ -1,7 +1,7 @@
 package com.dindin.api.transaction;
 
 import com.dindin.api.TestcontainersConfiguration;
-import com.dindin.api.auth.dto.TokenResponse;
+import com.dindin.api.support.AuthTestSupport;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,10 +40,9 @@ class TransactionFlowIntegrationTest {
 	@BeforeEach
 	void setUp() throws Exception {
 		String email = "trans-" + UUID.randomUUID() + "@dindin.com";
-		TokenResponse token = rest.postForEntity("/v1/auth/register",
-				Map.of("email", email, "password", "senha-forte-123"), TokenResponse.class).getBody();
-		headers = new HttpHeaders();
-		headers.setBearerAuth(token.token());
+		ResponseEntity<String> register = rest.postForEntity("/v1/auth/register",
+				Map.of("email", email, "password", "senha-forte-123"), String.class);
+		headers = AuthTestSupport.bearer(register);
 
 		checkingId = idOf(post("/v1/accounts", Map.of("name", "Uniclass", "type", "CHECKING")));
 		cardId = idOf(post("/v1/accounts",

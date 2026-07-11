@@ -1,51 +1,61 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Injectable, inject, signal } from '@angular/core';
+import { Observable, finalize, tap } from 'rxjs';
 
-import { MeResponse, TokenResponse } from './auth.models';
+import { UserResponse } from './auth.models';
 
-const TOKEN_KEY = 'dindin.token';
+// Flag NÃO-sensível apenas para roteamento no cliente. A credencial real é o cookie
+// httpOnly (inacessível ao JS); esta flag só evita um flicker de tela ao recarregar.
+const AUTH_FLAG = 'dindin.authed';
 const API = '/api/v1/auth';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
 
-  private readonly tokenSignal = signal<string | null>(localStorage.getItem(TOKEN_KEY));
+  private readonly authed = signal<boolean>(localStorage.getItem(AUTH_FLAG) === '1');
+  readonly isAuthenticated = this.authed.asReadonly();
+  readonly currentUser = signal<UserResponse | null>(null);
 
-  readonly isAuthenticated = computed(() => this.tokenSignal() !== null);
-  readonly currentUser = signal<MeResponse | null>(null);
-
-  token(): string | null {
-    return this.tokenSignal();
-  }
-
-  register(email: string, password: string): Observable<TokenResponse> {
+  register(email: string, password: string): Observable<UserResponse> {
     return this.http
-      .post<TokenResponse>(`${API}/register`, { email, password })
-      .pipe(tap((response) => this.storeToken(response.token)));
+      .post<UserResponse>(`${API}/register`, { email, password })
+      .pipe(tap((user) => this.markAuthenticated(user)));
   }
 
-  login(email: string, password: string): Observable<TokenResponse> {
+  login(email: string, password: string): Observable<UserResponse> {
     return this.http
-      .post<TokenResponse>(`${API}/login`, { email, password })
-      .pipe(tap((response) => this.storeToken(response.token)));
+      .post<UserResponse>(`${API}/login`, { email, password })
+      .pipe(tap((user) => this.markAuthenticated(user)));
   }
 
-  loadCurrentUser(): Observable<MeResponse> {
+  refresh(): Observable<UserResponse> {
     return this.http
-      .get<MeResponse>(`${API}/me`)
-      .pipe(tap((user) => this.currentUser.set(user)));
+      .post<UserResponse>(`${API}/refresh`, {})
+      .pipe(tap((user) => this.markAuthenticated(user)));
   }
 
-  logout(): void {
-    localStorage.removeItem(TOKEN_KEY);
-    this.tokenSignal.set(null);
+  loadCurrentUser(): Observable<UserResponse> {
+    return this.http
+      .get<UserResponse>(`${API}/me`)
+      .pipe(tap((user) => this.markAuthenticated(user)));
+  }
+
+  /** Encerra a sessão no servidor (revoga o refresh token) e limpa o estado local. */
+  logout(): Observable<void> {
+    return this.http.post<void>(`${API}/logout`, {}).pipe(finalize(() => this.clearSession()));
+  }
+
+  /** Limpeza local sem chamada de rede (usada quando o refresh falha). */
+  clearSession(): void {
     this.currentUser.set(null);
+    this.authed.set(false);
+    localStorage.removeItem(AUTH_FLAG);
   }
 
-  private storeToken(token: string): void {
-    localStorage.setItem(TOKEN_KEY, token);
-    this.tokenSignal.set(token);
+  private markAuthenticated(user: UserResponse): void {
+    this.currentUser.set(user);
+    this.authed.set(true);
+    localStorage.setItem(AUTH_FLAG, '1');
   }
 }

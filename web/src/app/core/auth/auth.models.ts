@@ -1,10 +1,4 @@
-export interface TokenResponse {
-  token: string;
-  tokenType: string;
-  expiresInSeconds: number;
-}
-
-export interface MeResponse {
+export interface UserResponse {
   id: string;
   email: string;
 }

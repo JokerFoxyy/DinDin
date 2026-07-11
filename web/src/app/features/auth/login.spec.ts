@@ -5,7 +5,7 @@ import { of, throwError } from 'rxjs';
 
 import { Login } from './login';
 import { AuthService } from '../../core/auth/auth.service';
-import { TokenResponse } from '../../core/auth/auth.models';
+import { UserResponse } from '../../core/auth/auth.models';
 
 describe('Login', () => {
   let fixture: ComponentFixture<Login>;
@@ -13,7 +13,7 @@ describe('Login', () => {
   let authService: jasmine.SpyObj<AuthService>;
   let router: jasmine.SpyObj<Router>;
 
-  const tokenResponse: TokenResponse = { token: 'jwt', tokenType: 'Bearer', expiresInSeconds: 7200 };
+  const user: UserResponse = { id: 'u1', email: 'victor@dindin.com' };
 
   function fillForm(email: string, password: string): void {
     component.form.setValue({ email, password });
@@ -50,7 +50,7 @@ describe('Login', () => {
   });
 
   it('should navigate to dashboard when login succeeds', () => {
-    authService.login.and.returnValue(of(tokenResponse));
+    authService.login.and.returnValue(of(user));
     fillForm('victor@dindin.com', 'senha-forte-123');
 
     component.submit();
@@ -60,7 +60,7 @@ describe('Login', () => {
   });
 
   it('should call register when in register mode', () => {
-    authService.register.and.returnValue(of(tokenResponse));
+    authService.register.and.returnValue(of(user));
     component.toggleMode();
     fillForm('novo@dindin.com', 'senha-forte-123');
 

@@ -1,0 +1,91 @@
+package com.dindin.api.account;
+
+import com.dindin.api.auth.refresh.RefreshTokenRepository;
+import com.dindin.api.category.CategoryRepository;
+import com.dindin.api.common.error.NotFoundException;
+import com.dindin.api.invoice.CardInvoiceRepository;
+import com.dindin.api.transaction.TransactionRepository;
+import com.dindin.api.user.User;
+import com.dindin.api.user.UserRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Direitos do titular (LGPD Art. 18): exportação (portabilidade) e eliminação de todos
+ * os dados pessoais vinculados ao usuário autenticado.
+ */
+@Service
+public class UserDataService {
+
+	private final UserRepository userRepository;
+	private final AccountRepository accountRepository;
+	private final CategoryRepository categoryRepository;
+	private final TransactionRepository transactionRepository;
+	private final CardInvoiceRepository cardInvoiceRepository;
+	private final RefreshTokenRepository refreshTokenRepository;
+
+	public UserDataService(UserRepository userRepository, AccountRepository accountRepository,
+			CategoryRepository categoryRepository, TransactionRepository transactionRepository,
+			CardInvoiceRepository cardInvoiceRepository, RefreshTokenRepository refreshTokenRepository) {
+		this.userRepository = userRepository;
+		this.accountRepository = accountRepository;
+		this.categoryRepository = categoryRepository;
+		this.transactionRepository = transactionRepository;
+		this.cardInvoiceRepository = cardInvoiceRepository;
+		this.refreshTokenRepository = refreshTokenRepository;
+	}
+
+	@Transactional(readOnly = true)
+	public Map<String, Object> export(UUID userId) {
+		User user = userRepository.findById(userId)
+				.orElseThrow(() -> new NotFoundException("Usuário não encontrado"));
+		List<Account> accounts = accountRepository.findAllByUserIdOrderByNameAsc(userId);
+		List<UUID> accountIds = accounts.stream().map(Account::getId).toList();
+
+		Map<String, Object> export = new LinkedHashMap<>();
+		export.put("exportedAt", java.time.Instant.now().toString());
+		export.put("user", Map.of("id", user.getId(), "email", user.getEmail(),
+				"createdAt", user.getCreatedAt().toString()));
+		export.put("accounts", accounts.stream().map(a -> Map.of(
+				"id", a.getId(), "name", a.getName(), "type", a.getType(),
+				"closingDay", nullSafe(a.getClosingDay()), "dueDay", nullSafe(a.getDueDay()))).toList());
+		export.put("categories", categoryRepository.findAllByUserIdOrderByNameAsc(userId).stream().map(c -> Map.of(
+				"id", c.getId(), "name", c.getName(), "kind", c.getKind(),
+				"icon", nullSafe(c.getIcon()), "color", nullSafe(c.getColor()))).toList());
+		export.put("transactions", transactionRepository.findAllByUserIdOrderByDateAsc(userId).stream().map(t -> Map.of(
+				"id", t.getId(), "date", t.getDate().toString(), "description", t.getDescription(),
+				"amount", t.getAmount(), "type", t.getType(), "accountId", t.getAccountId(),
+				"categoryId", nullSafe(t.getCategoryId()), "invoiceId", nullSafe(t.getInvoiceId()))).toList());
+		export.put("cardInvoices", cardInvoiceRepository.findByAccountIdIn(accountIds).stream().map(i -> Map.of(
+				"id", i.getId(), "accountId", i.getAccountId(), "month", i.getMonth().toString(),
+				"status", i.getStatus())).toList());
+		return export;
+	}
+
+	@Transactional
+	public void deleteAccount(UUID userId) {
+		if (!userRepository.existsById(userId)) {
+			throw new NotFoundException("Usuário não encontrado");
+		}
+		List<UUID> accountIds = accountRepository.findAllByUserIdOrderByNameAsc(userId).stream()
+				.map(Account::getId).toList();
+		transactionRepository.deleteByUserId(userId);
+		if (!accountIds.isEmpty()) {
+			cardInvoiceRepository.deleteByAccountIdIn(accountIds);
+		}
+		categoryRepository.deleteByUserId(userId);
+		accountRepository.deleteByUserId(userId);
+		refreshTokenRepository.deleteByUserId(userId);
+		userRepository.deleteById(userId);
+	}
+
+	private Object nullSafe(Object value) {
+		return value == null ? "" : value;
+	}
+
+}

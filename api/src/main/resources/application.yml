@@ -20,7 +20,13 @@ spring:
 app:
   jwt:
     secret: ${JWT_SECRET:dindin-dev-secret-do-not-use-in-production-0123456789}
-    expiration: ${JWT_EXPIRATION:PT2H}
+    access-expiration: ${JWT_ACCESS_EXPIRATION:PT15M}
+    refresh-expiration: ${JWT_REFRESH_EXPIRATION:P30D}
+  security:
+    cookie-secure: ${COOKIE_SECURE:false}
+    rate-limit:
+      max-attempts: ${AUTH_RATE_LIMIT_MAX:10}
+      window: ${AUTH_RATE_LIMIT_WINDOW:PT1M}
 
 management:
   endpoints:

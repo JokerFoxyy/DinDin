@@ -39,6 +39,18 @@ public class GlobalExceptionHandler {
 		return ApiError.of(HttpStatus.UNAUTHORIZED.value(), ex.getMessage());
 	}
 
+	@ExceptionHandler(InvalidRefreshTokenException.class)
+	@ResponseStatus(HttpStatus.UNAUTHORIZED)
+	public ApiError handleInvalidRefreshToken(InvalidRefreshTokenException ex) {
+		return ApiError.of(HttpStatus.UNAUTHORIZED.value(), ex.getMessage());
+	}
+
+	@ExceptionHandler(TooManyRequestsException.class)
+	@ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
+	public ApiError handleTooManyRequests(TooManyRequestsException ex) {
+		return ApiError.of(HttpStatus.TOO_MANY_REQUESTS.value(), ex.getMessage());
+	}
+
 	@ExceptionHandler(NotFoundException.class)
 	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public ApiError handleNotFound(NotFoundException ex) {
