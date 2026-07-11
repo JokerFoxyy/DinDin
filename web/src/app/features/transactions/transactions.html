@@ -75,9 +75,9 @@
           </td>
           <td class="row-actions">
             @if (transaction.type !== 'INVOICE_ADJUSTMENT') {
-              <button class="link" (click)="openEdit(transaction)">Editar</button>
+              <button type="button" class="link" (click)="openEdit(transaction)">Editar</button>
             }
-            <button class="link danger" (click)="remove(transaction)">Excluir</button>
+            <button type="button" class="link danger" (click)="remove(transaction)">Excluir</button>
           </td>
         </tr>
       }
@@ -85,9 +85,9 @@
 
     @if (totalPages() > 1) {
       <div class="pagination">
-        <button class="link" [disabled]="page() === 0" (click)="goToPage(page() - 1)">‹ Anterior</button>
+        <button type="button" class="link" [disabled]="page() === 0" (click)="goToPage(page() - 1)">‹ Anterior</button>
         <span>página {{ page() + 1 }} de {{ totalPages() }}</span>
-        <button class="link" [disabled]="page() >= totalPages() - 1" (click)="goToPage(page() + 1)">Próxima ›</button>
+        <button type="button" class="link" [disabled]="page() >= totalPages() - 1" (click)="goToPage(page() + 1)">Próxima ›</button>
       </div>
     }
   }

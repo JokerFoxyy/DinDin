@@ -69,7 +69,9 @@ h1 {
 }
 
 .row-actions {
-  text-align: right;
+  display: flex;
+  gap: 14px;
+  justify-content: flex-end;
   white-space: nowrap;
 }
 
