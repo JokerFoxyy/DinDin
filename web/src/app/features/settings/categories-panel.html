@@ -1,0 +1,73 @@
+<div class="panel">
+  <div class="panel-header">
+    <h2>Categorias</h2>
+    @if (!showForm()) {
+      <button class="btn" (click)="openCreate()">+ Nova categoria</button>
+    }
+  </div>
+
+  @if (errorMessage(); as message) {
+    <div class="form-error" role="alert">{{ message }}</div>
+  }
+
+  @if (showForm()) {
+    <form [formGroup]="form" (ngSubmit)="submit()" class="inline-form">
+      <div class="field">
+        <label for="category-name">Nome</label>
+        <input id="category-name" type="text" formControlName="name" placeholder="Ex.: Mercado" />
+        @if (form.controls.name.touched && form.controls.name.invalid) {
+          <div class="error">Informe o nome da categoria</div>
+        }
+      </div>
+      <div class="days-row">
+        <div class="field">
+          <label for="category-kind">Tipo</label>
+          <select id="category-kind" formControlName="kind">
+            @for (option of kindOptions; track option) {
+              <option [value]="option">{{ kindLabels[option] }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="category-icon">Ícone (emoji)</label>
+          <input id="category-icon" type="text" formControlName="icon" placeholder="🛒" maxlength="16" />
+        </div>
+        <div class="field">
+          <label for="category-color">Cor</label>
+          <input id="category-color" type="color" formControlName="color" />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" type="submit">{{ editing() ? 'Salvar' : 'Criar' }}</button>
+        <button class="btn-ghost" type="button" (click)="cancel()">Cancelar</button>
+      </div>
+    </form>
+  }
+
+  @if (categories().length === 0 && !showForm()) {
+    <p class="empty">Nenhuma categoria ainda. Ex.: Mercado, Assinaturas, Salário...</p>
+  } @else if (categories().length > 0) {
+    <table>
+      <tr>
+        <th>Categoria</th>
+        <th>Tipo</th>
+        <th></th>
+      </tr>
+      @for (category of categories(); track category.id) {
+        <tr>
+          <td>
+            <span class="tag" [style.background]="(category.color ?? '#4f8ef7') + '26'"
+                  [style.color]="category.color ?? '#4f8ef7'">
+              {{ category.icon }} {{ category.name }}
+            </span>
+          </td>
+          <td>{{ kindLabels[category.kind] }}</td>
+          <td class="row-actions">
+            <button class="link" (click)="openEdit(category)">Editar</button>
+            <button class="link danger" (click)="remove(category)">Excluir</button>
+          </td>
+        </tr>
+      }
+    </table>
+  }
+</div>

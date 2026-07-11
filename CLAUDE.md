@@ -94,6 +94,14 @@ Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/post
 
 **Gotcha do Karma:** o `karma.conf.js` referenciado pelo builder `@angular/build:karma` **substitui** a config default em vez de mesclar — se recriar, use `ng generate config karma` e edite (senão os testes quebram com "describe is not defined"). Os thresholds de cobertura (90/80/90/90) vivem no `coverageReporter.check` desse arquivo.
 
+## Domínio (sessões #5–#6)
+
+- `/api/v1/accounts` e `/api/v1/categories`: CRUDs escopados por usuário (recurso alheio → 404); cartão exige `closingDay`/`dueDay`; categoria única por (user, nome, kind) → 409.
+- `/api/v1/transactions`: `GET ?month=YYYY-MM` (obrigatório) `&accountId&categoryId&type&page&size` → `PageResponse`; POST/PUT/DELETE. `amount` sempre positivo (sinal vem do `type`); categoria deve ter kind coerente com o type; `INVOICE_ADJUSTMENT` é reservado (400 na API).
+- **Vínculo de fatura:** compra em cartão no dia do fechamento ou depois → fatura do mês seguinte; `CardInvoiceService.getOrCreateInvoiceFor` cria a fatura OPEN do período na primeira compra (única por conta+mês; dias clampados ao fim do mês; vencimento ≤ fechamento cai no mês seguinte). Update de transação re-vincula; sair do cartão zera `invoice_id`.
+- Delete de conta/categoria com transações → 409 (`DataIntegrityViolationException` no handler global).
+- Filtros dinâmicos usam **JPA Specification** — não usar `(:param is null or ...)` em JPQL com UUID (quebra no Postgres/Hibernate 6).
+
 ## Auth (sessão #2)
 
 JWT próprio HS256 (jjwt): `POST /api/v1/auth/register` (201) e `/login` retornam `{token, tokenType, expiresInSeconds}`; `GET /api/v1/auth/me` prova o token. `JwtAuthFilter` popula o SecurityContext com `AuthenticatedUser(id, email)` — controllers recebem via `@AuthenticationPrincipal`. Config: `JWT_SECRET` (≥32 bytes) e `JWT_EXPIRATION` (ISO-8601, default PT2H). Públicos: register/login, health, swagger. Erros padronizados pelo `GlobalExceptionHandler` (400 com `fieldErrors`, 401, 409, 500).
