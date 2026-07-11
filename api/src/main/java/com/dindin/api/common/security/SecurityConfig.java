@@ -11,18 +11,31 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
+	/** Custo do BCrypt: 12 é apropriado para dados financeiros (mais lento contra brute-force offline). */
+	private static final int BCRYPT_STRENGTH = 12;
+
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter) throws Exception {
 		return http
+				// CSRF: a defesa é o cookie SameSite=Strict (não vai em requisição cross-site) + API
+				// JSON same-origin. Sem cookies de sessão de servidor, o token CSRF clássico não se aplica.
 				.csrf(csrf -> csrf.disable())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+				.headers(headers -> headers
+						.frameOptions(frame -> frame.deny())
+						.referrerPolicy(referrer -> referrer.policy(ReferrerPolicy.SAME_ORIGIN))
+						.httpStrictTransportSecurity(hsts -> hsts
+								.includeSubDomains(true)
+								.maxAgeInSeconds(31_536_000)))
 				.authorizeHttpRequests(auth -> auth
-						.requestMatchers("/v1/auth/register", "/v1/auth/login").permitAll()
+						.requestMatchers("/v1/auth/register", "/v1/auth/login",
+								"/v1/auth/refresh", "/v1/auth/logout").permitAll()
 						.requestMatchers("/actuator/health").permitAll()
 						.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 						.anyRequest().authenticated())
@@ -33,7 +46,7 @@ public class SecurityConfig {
 
 	@Bean
 	PasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder();
+		return new BCryptPasswordEncoder(BCRYPT_STRENGTH);
 	}
 
 }

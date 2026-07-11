@@ -102,9 +102,22 @@ Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/post
 - Delete de conta/categoria com transações → 409 (`DataIntegrityViolationException` no handler global).
 - Filtros dinâmicos usam **JPA Specification** — não usar `(:param is null or ...)` em JPQL com UUID (quebra no Postgres/Hibernate 6).
 
-## Auth (sessão #2)
+## Auth & Segurança (sessões #2 e #S)
 
-JWT próprio HS256 (jjwt): `POST /api/v1/auth/register` (201) e `/login` retornam `{token, tokenType, expiresInSeconds}`; `GET /api/v1/auth/me` prova o token. `JwtAuthFilter` popula o SecurityContext com `AuthenticatedUser(id, email)` — controllers recebem via `@AuthenticationPrincipal`. Config: `JWT_SECRET` (≥32 bytes) e `JWT_EXPIRATION` (ISO-8601, default PT2H). Públicos: register/login, health, swagger. Erros padronizados pelo `GlobalExceptionHandler` (400 com `fieldErrors`, 401, 409, 500).
+**Modelo de sessão (reescrito na #S):** cookies httpOnly, não JWT no localStorage.
+- `POST /api/v1/auth/register` (201) e `/login` (200) setam **dois cookies httpOnly + SameSite=Strict** (`dindin_at` = access JWT 15min; `dindin_rt` = refresh opaco 30d) e retornam só `{id,email}` — **nunca o token no corpo**.
+- `POST /auth/refresh` rotaciona o refresh token (o antigo é revogado); `POST /auth/logout` revoga no banco e limpa cookies; `GET /auth/me` retorna `{id,email}`.
+- `JwtAuthFilter` lê o access token do cookie `dindin_at` (fallback `Authorization: Bearer` para clientes de API/testes) e popula `AuthenticatedUser(id,email)` (via `@AuthenticationPrincipal`).
+- Refresh token: opaco (256 bits), guardado **como hash SHA-256** em `refresh_tokens`, rotacionado a cada uso, revogável. HS256 do access token assinado com `JWT_SECRET`.
+- **Frontend:** sem token em JS. `AuthService` guarda só a flag booleana `dindin.authed` (roteamento); interceptor manda `withCredentials` e, em 401, tenta `/refresh` uma vez e repete a requisição, senão desloga.
+
+**Hardening:** rate limiting em login/register (429; `LoginRateLimiter` in-memory por IP+email); BCrypt strength 12; senha exige ≥10 chars com letra e número; `SecretsValidator` **falha o startup em profile `prod`** se `JWT_SECRET`/`DB_PASSWORD` forem os defaults de dev; security headers (frame deny, referrer, HSTS); Swagger/api-docs desligados em prod (`application-prod.yml`, `cookie-secure: true`).
+
+**CSRF:** desabilitado de propósito — a defesa é o cookie `SameSite=Strict` (não vai em requisição cross-site) numa API JSON same-origin. Ver `docs/security/threat-model-stride.md`.
+
+**LGPD:** `GET /api/v1/account/export` (portabilidade, baixa JSON) e `DELETE /api/v1/account` (elimina usuário + todos os dados vinculados, em ordem FK-safe). No front, "zona de privacidade" em Configurações. Ver `docs/security/lgpd.md`.
+
+Erros padronizados pelo `GlobalExceptionHandler`: 400 (`fieldErrors`/business), 401 (credenciais/refresh), 409 (duplicata/FK), 429 (rate limit), 500. Públicos: register/login/refresh/logout, health, swagger.
 
 ## Git workflow
 

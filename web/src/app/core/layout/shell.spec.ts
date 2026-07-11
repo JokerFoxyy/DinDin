@@ -5,17 +5,19 @@ import { of, throwError } from 'rxjs';
 
 import { Shell } from './shell';
 import { AuthService } from '../auth/auth.service';
-import { MeResponse } from '../auth/auth.models';
+import { UserResponse } from '../auth/auth.models';
 
 describe('Shell', () => {
   let fixture: ComponentFixture<Shell>;
   let component: Shell;
-  let authService: jasmine.SpyObj<AuthService> & { currentUser: ReturnType<typeof signal<MeResponse | null>> };
+  let authService: jasmine.SpyObj<AuthService> & { currentUser: ReturnType<typeof signal<UserResponse | null>> };
 
   beforeEach(async () => {
-    const spy = jasmine.createSpyObj<AuthService>('AuthService', ['loadCurrentUser', 'logout']);
-    authService = Object.assign(spy, { currentUser: signal<MeResponse | null>(null) });
+    const spy = jasmine.createSpyObj<AuthService>('AuthService',
+      ['loadCurrentUser', 'logout', 'clearSession']);
+    authService = Object.assign(spy, { currentUser: signal<UserResponse | null>(null) });
     authService.loadCurrentUser.and.returnValue(of({ id: 'uuid-1', email: 'victor@dindin.com' }));
+    authService.logout.and.returnValue(of(void 0));
 
     await TestBed.configureTestingModule({
       imports: [Shell],
@@ -61,14 +63,14 @@ describe('Shell', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/login']);
   });
 
-  it('should logout when loading current user fails', () => {
+  it('should clear session and go to login when loading current user fails', () => {
     authService.loadCurrentUser.and.returnValue(throwError(() => new Error('401')));
     const router = TestBed.inject(Router);
     spyOn(router, 'navigate');
 
     fixture.detectChanges();
 
-    expect(authService.logout).toHaveBeenCalled();
+    expect(authService.clearSession).toHaveBeenCalled();
     expect(router.navigate).toHaveBeenCalledWith(['/login']);
   });
 });
