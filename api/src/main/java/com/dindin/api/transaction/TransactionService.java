@@ -99,6 +99,18 @@ public class TransactionService {
 		transactionRepository.delete(findOwned(userId, transactionId));
 	}
 
+	/** Marca/desmarca o pagamento (usado no checkbox "pago?" dos fixos). */
+	@Transactional
+	public TransactionResponse setPaid(UUID userId, UUID transactionId, boolean paid) {
+		Transaction transaction = findOwned(userId, transactionId);
+		transaction.markPaid(paid);
+		Account account = accountRepository.findByIdAndUserId(transaction.getAccountId(), userId).orElse(null);
+		Category category = transaction.getCategoryId() != null
+				? categoryRepository.findByIdAndUserId(transaction.getCategoryId(), userId).orElse(null)
+				: null;
+		return toResponse(transaction, new ValidatedRefs(account, category));
+	}
+
 	private Transaction findOwned(UUID userId, UUID transactionId) {
 		return transactionRepository.findByIdAndUserId(transactionId, userId)
 				.orElseThrow(() -> new NotFoundException("Transação não encontrada"));
