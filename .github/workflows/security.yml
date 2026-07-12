@@ -19,10 +19,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  codeql-java:
-    name: CodeQL Analysis (Java)
+  # Job único chamado exatamente "CodeQL Analysis" — é o nome do required status check
+  # do ruleset. Analisa Java e TypeScript numa só passada (o build do Maven serve de
+  # tracing para o Java; o TS é escaneado direto da fonte).
+  codeql:
+    name: CodeQL Analysis
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - uses: actions/checkout@v4
@@ -37,10 +40,10 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: java-kotlin
+          languages: java-kotlin, javascript-typescript
           queries: security-and-quality
 
-      - name: Build
+      - name: Build Java (tracing do CodeQL)
         working-directory: api
         run: |
           chmod +x mvnw
@@ -48,27 +51,6 @@ jobs:
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
-        with:
-          category: '/language:java-kotlin'
-
-  codeql-js:
-    name: CodeQL Analysis (TypeScript)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript-typescript
-          queries: security-and-quality
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: '/language:javascript-typescript'
 
   dependency-check:
     name: Dependency Vulnerability Scan
