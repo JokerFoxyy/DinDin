@@ -13,6 +13,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID>,
 
 	List<Transaction> findAllByUserIdOrderByDateAsc(UUID userId);
 
+	List<Transaction> findAllByInvoiceIdOrderByDateAsc(UUID invoiceId);
+
 	void deleteByUserId(UUID userId);
 
 }
