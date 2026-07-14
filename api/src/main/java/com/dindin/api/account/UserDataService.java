@@ -4,6 +4,7 @@ import com.dindin.api.auth.refresh.RefreshTokenRepository;
 import com.dindin.api.category.CategoryRepository;
 import com.dindin.api.common.error.NotFoundException;
 import com.dindin.api.invoice.CardInvoiceRepository;
+import com.dindin.api.recurring.RecurringTransactionRepository;
 import com.dindin.api.transaction.TransactionRepository;
 import com.dindin.api.user.User;
 import com.dindin.api.user.UserRepository;
@@ -27,16 +28,19 @@ public class UserDataService {
 	private final CategoryRepository categoryRepository;
 	private final TransactionRepository transactionRepository;
 	private final CardInvoiceRepository cardInvoiceRepository;
+	private final RecurringTransactionRepository recurringRepository;
 	private final RefreshTokenRepository refreshTokenRepository;
 
 	public UserDataService(UserRepository userRepository, AccountRepository accountRepository,
 			CategoryRepository categoryRepository, TransactionRepository transactionRepository,
-			CardInvoiceRepository cardInvoiceRepository, RefreshTokenRepository refreshTokenRepository) {
+			CardInvoiceRepository cardInvoiceRepository, RecurringTransactionRepository recurringRepository,
+			RefreshTokenRepository refreshTokenRepository) {
 		this.userRepository = userRepository;
 		this.accountRepository = accountRepository;
 		this.categoryRepository = categoryRepository;
 		this.transactionRepository = transactionRepository;
 		this.cardInvoiceRepository = cardInvoiceRepository;
+		this.recurringRepository = recurringRepository;
 		this.refreshTokenRepository = refreshTokenRepository;
 	}
 
@@ -64,6 +68,10 @@ public class UserDataService {
 		export.put("cardInvoices", cardInvoiceRepository.findByAccountIdIn(accountIds).stream().map(i -> Map.of(
 				"id", i.getId(), "accountId", i.getAccountId(), "month", i.getMonth().toString(),
 				"status", i.getStatus())).toList());
+		export.put("recurringTransactions", recurringRepository.findAllByUserIdOrderByDescriptionAsc(userId).stream()
+				.map(r -> Map.of("id", r.getId(), "description", r.getDescription(), "amount", r.getAmount(),
+						"type", r.getType(), "dayOfMonth", r.getDayOfMonth(), "active", r.isActive(),
+						"endDate", nullSafe(r.getEndDate() == null ? null : r.getEndDate().toString()))).toList());
 		return export;
 	}
 
@@ -74,7 +82,9 @@ public class UserDataService {
 		}
 		List<UUID> accountIds = accountRepository.findAllByUserIdOrderByNameAsc(userId).stream()
 				.map(Account::getId).toList();
+		// transações referenciam recurring_transactions e faturas; apagar transações primeiro
 		transactionRepository.deleteByUserId(userId);
+		recurringRepository.deleteByUserId(userId);
 		if (!accountIds.isEmpty()) {
 			cardInvoiceRepository.deleteByAccountIdIn(accountIds);
 		}

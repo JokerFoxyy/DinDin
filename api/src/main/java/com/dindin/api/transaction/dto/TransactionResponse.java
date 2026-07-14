@@ -21,7 +21,9 @@ public record TransactionResponse(
 		String categoryName,
 		String categoryIcon,
 		String categoryColor,
-		LocalDate invoiceMonth) {
+		LocalDate invoiceMonth,
+		boolean paid,
+		UUID recurringId) {
 
 	public static TransactionResponse from(Transaction transaction, Account account,
 			Category category, LocalDate invoiceMonth) {
@@ -37,7 +39,9 @@ public record TransactionResponse(
 				category != null ? category.getName() : null,
 				category != null ? category.getIcon() : null,
 				category != null ? category.getColor() : null,
-				invoiceMonth);
+				invoiceMonth,
+				transaction.isPaid(),
+				transaction.getRecurringId());
 	}
 
 }
