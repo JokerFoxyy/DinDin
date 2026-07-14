@@ -1,5 +1,6 @@
-package com.dindin.api.transaction;
+package com.dindin.api.recurring;
 
+import com.dindin.api.transaction.TransactionType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -16,8 +17,8 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
-@Table(name = "transactions")
-public class Transaction {
+@Table(name = "recurring_transactions")
+public class RecurringTransaction {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.UUID)
@@ -29,11 +30,8 @@ public class Transaction {
 	@Column(name = "account_id", nullable = false)
 	private UUID accountId;
 
-	@Column(name = "category_id")
+	@Column(name = "category_id", nullable = false)
 	private UUID categoryId;
-
-	@Column(name = "invoice_id")
-	private UUID invoiceId;
 
 	@Column(nullable = false)
 	private String description;
@@ -41,45 +39,36 @@ public class Transaction {
 	@Column(nullable = false)
 	private BigDecimal amount;
 
-	@Column(nullable = false)
-	private LocalDate date;
-
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)
 	private TransactionType type;
 
-	@Column(name = "recurring_id")
-	private UUID recurringId;
+	@Column(name = "day_of_month", nullable = false)
+	private int dayOfMonth;
 
 	@Column(nullable = false)
-	private boolean paid = true;
+	private boolean active = true;
+
+	@Column(name = "end_date")
+	private LocalDate endDate;
 
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
 
-	protected Transaction() {
+	protected RecurringTransaction() {
 	}
 
-	public Transaction(UUID userId, UUID accountId, UUID categoryId, UUID invoiceId,
-			String description, BigDecimal amount, LocalDate date, TransactionType type) {
+	public RecurringTransaction(UUID userId, UUID accountId, UUID categoryId, String description,
+			BigDecimal amount, TransactionType type, int dayOfMonth, boolean active, LocalDate endDate) {
 		this.userId = userId;
 		this.accountId = accountId;
 		this.categoryId = categoryId;
-		this.invoiceId = invoiceId;
 		this.description = description;
 		this.amount = amount;
-		this.date = date;
 		this.type = type;
-	}
-
-	/** Transação gerada por um fixo: vinculada ao recurring e nasce não-paga. */
-	public static Transaction materialized(UUID userId, UUID accountId, UUID categoryId, UUID invoiceId,
-			String description, BigDecimal amount, LocalDate date, TransactionType type, UUID recurringId) {
-		Transaction transaction = new Transaction(userId, accountId, categoryId, invoiceId,
-				description, amount, date, type);
-		transaction.recurringId = recurringId;
-		transaction.paid = false;
-		return transaction;
+		this.dayOfMonth = dayOfMonth;
+		this.active = active;
+		this.endDate = endDate;
 	}
 
 	@PrePersist
@@ -89,15 +78,29 @@ public class Transaction {
 		}
 	}
 
-	public void update(UUID accountId, UUID categoryId, UUID invoiceId,
-			String description, BigDecimal amount, LocalDate date, TransactionType type) {
+	public void update(UUID accountId, UUID categoryId, String description, BigDecimal amount,
+			TransactionType type, int dayOfMonth, boolean active, LocalDate endDate) {
 		this.accountId = accountId;
 		this.categoryId = categoryId;
-		this.invoiceId = invoiceId;
 		this.description = description;
 		this.amount = amount;
-		this.date = date;
 		this.type = type;
+		this.dayOfMonth = dayOfMonth;
+		this.active = active;
+		this.endDate = endDate;
+	}
+
+	/** Data da ocorrência num dado mês (dia clampado ao fim do mês). */
+	public LocalDate occurrenceDate(java.time.YearMonth month) {
+		return month.atDay(Math.min(dayOfMonth, month.lengthOfMonth()));
+	}
+
+	/** O fixo gera ocorrência neste mês? (ativo e não encerrado antes da data da ocorrência) */
+	public boolean occursIn(java.time.YearMonth month) {
+		if (!active) {
+			return false;
+		}
+		return endDate == null || !endDate.isBefore(occurrenceDate(month));
 	}
 
 	public UUID getId() {
@@ -116,10 +119,6 @@ public class Transaction {
 		return categoryId;
 	}
 
-	public UUID getInvoiceId() {
-		return invoiceId;
-	}
-
 	public String getDescription() {
 		return description;
 	}
@@ -128,28 +127,20 @@ public class Transaction {
 		return amount;
 	}
 
-	public LocalDate getDate() {
-		return date;
-	}
-
 	public TransactionType getType() {
 		return type;
 	}
 
-	public UUID getRecurringId() {
-		return recurringId;
+	public int getDayOfMonth() {
+		return dayOfMonth;
 	}
 
-	public boolean isPaid() {
-		return paid;
+	public boolean isActive() {
+		return active;
 	}
 
-	public void markPaid(boolean paid) {
-		this.paid = paid;
-	}
-
-	public Instant getCreatedAt() {
-		return createdAt;
+	public LocalDate getEndDate() {
+		return endDate;
 	}
 
 }

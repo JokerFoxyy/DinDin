@@ -4,14 +4,12 @@ import { Type } from '@angular/core';
 import { Dashboard } from './dashboard/dashboard';
 import { Investments } from './investments/investments';
 import { Goals } from './goals/goals';
-import { Recurring } from './recurring/recurring';
 
 describe('Páginas placeholder', () => {
   const cases: { component: Type<unknown>; title: string }[] = [
     { component: Dashboard, title: 'Dashboard' },
     { component: Investments, title: 'Investimentos' },
-    { component: Goals, title: 'Metas' },
-    { component: Recurring, title: 'Fixos' }
+    { component: Goals, title: 'Metas' }
   ];
 
   for (const { component, title } of cases) {
