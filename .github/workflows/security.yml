@@ -1,13 +1,8 @@
 name: Security Scan
 
 on:
-  # 'feature/**' no push: PRs feature→develop são criados via GITHUB_TOKEN pelo workflow
-  # "Auto PR" — eventos do GITHUB_TOKEN não disparam outros workflows via pull_request
-  # (limite do GitHub Actions para evitar loop), então sem isso o required check
-  # "CodeQL Analysis" nunca reporta status pro PR e fica "Expected — waiting" pra sempre
-  # (mesmo problema já corrigido no build-and-test do ci-api.yml).
   push:
-    branches: [main, develop, 'feature/**']
+    branches: [main, develop]
   pull_request:
     branches: [main, develop]
   schedule:
