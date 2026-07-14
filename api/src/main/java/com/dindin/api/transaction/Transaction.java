@@ -48,6 +48,12 @@ public class Transaction {
 	@Column(nullable = false)
 	private TransactionType type;
 
+	@Column(name = "recurring_id")
+	private UUID recurringId;
+
+	@Column(nullable = false)
+	private boolean paid = true;
+
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
 
@@ -64,6 +70,16 @@ public class Transaction {
 		this.amount = amount;
 		this.date = date;
 		this.type = type;
+	}
+
+	/** Transação gerada por um fixo: vinculada ao recurring e nasce não-paga. */
+	public static Transaction materialized(UUID userId, UUID accountId, UUID categoryId, UUID invoiceId,
+			String description, BigDecimal amount, LocalDate date, TransactionType type, UUID recurringId) {
+		Transaction transaction = new Transaction(userId, accountId, categoryId, invoiceId,
+				description, amount, date, type);
+		transaction.recurringId = recurringId;
+		transaction.paid = false;
+		return transaction;
 	}
 
 	@PrePersist
@@ -118,6 +134,18 @@ public class Transaction {
 
 	public TransactionType getType() {
 		return type;
+	}
+
+	public UUID getRecurringId() {
+		return recurringId;
+	}
+
+	public boolean isPaid() {
+		return paid;
+	}
+
+	public void markPaid(boolean paid) {
+		this.paid = paid;
 	}
 
 	public Instant getCreatedAt() {

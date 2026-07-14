@@ -2,6 +2,7 @@ package com.dindin.api.transaction;
 
 import com.dindin.api.common.dto.PageResponse;
 import com.dindin.api.common.security.AuthenticatedUser;
+import com.dindin.api.transaction.dto.PaidRequest;
 import com.dindin.api.transaction.dto.TransactionRequest;
 import com.dindin.api.transaction.dto.TransactionResponse;
 import jakarta.validation.Valid;
@@ -61,6 +62,12 @@ public class TransactionController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void delete(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id) {
 		transactionService.delete(user.id(), id);
+	}
+
+	@PutMapping("/{id}/paid")
+	public TransactionResponse setPaid(@AuthenticationPrincipal AuthenticatedUser user,
+			@PathVariable UUID id, @Valid @RequestBody PaidRequest request) {
+		return transactionService.setPaid(user.id(), id, request.paid());
 	}
 
 }

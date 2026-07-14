@@ -1,0 +1,94 @@
+<div class="topbar">
+  <h1>Faturas</h1>
+  <app-month-picker [month]="month()" (monthChange)="onMonthChange($event)" />
+</div>
+
+@if (errorMessage(); as message) {
+  <div class="form-error" role="alert">{{ message }}</div>
+}
+
+@if (invoices().length === 0) {
+  <div class="panel">
+    <p class="empty">Nenhuma fatura neste mês. Faturas surgem quando você lança gastos em cartões de crédito.</p>
+  </div>
+} @else {
+  @for (invoice of invoices(); track invoice.id) {
+    <div class="panel invoice-card">
+      <div class="invoice-head">
+        <div>
+          <h2>{{ invoice.accountName }}</h2>
+          <span class="dates">
+            fecha {{ invoice.closingDate | date: 'dd/MM' }} · vence {{ invoice.dueDate | date: 'dd/MM' }}
+          </span>
+        </div>
+        <span class="status-badge" [class]="statusClass(invoice.status)">{{ statusLabels[invoice.status] }}</span>
+      </div>
+
+      <div class="invoice-figures">
+        <div>
+          <div class="label">Lançado</div>
+          <div class="value">{{ invoice.launchedTotal | currency: 'BRL' }}</div>
+        </div>
+        <div>
+          <div class="label">Declarado</div>
+          <div class="value">{{ invoice.declaredTotal !== null ? (invoice.declaredTotal | currency: 'BRL') : '—' }}</div>
+        </div>
+        @if (invoice.adjustment > 0) {
+          <div>
+            <div class="label">Ajuste</div>
+            <div class="value neg">{{ invoice.adjustment | currency: 'BRL' }}</div>
+          </div>
+        }
+      </div>
+
+      @if (closingId() === invoice.id) {
+        <div class="close-form">
+          <label [attr.for]="'declared-' + invoice.id">Valor real da fatura (R$)</label>
+          <input [id]="'declared-' + invoice.id" type="number" step="0.01" min="0"
+                 [value]="declaredInput()" (input)="onDeclaredInput($any($event.target).value)" />
+          <button type="button" class="btn" (click)="confirmClose(invoice)">Fechar fatura</button>
+          <button type="button" class="btn-ghost" (click)="cancelClose()">Cancelar</button>
+        </div>
+      }
+
+      <div class="invoice-actions">
+        @if (invoice.status === 'OPEN') {
+          <button type="button" class="link" (click)="startClose(invoice)">Fechar fatura</button>
+        }
+        @if (invoice.status === 'CLOSED') {
+          <button type="button" class="link" (click)="pay(invoice)">Marcar como paga</button>
+          <button type="button" class="link" (click)="reopen(invoice)">Reabrir</button>
+        }
+        <button type="button" class="link" (click)="toggleDetail(invoice)">
+          {{ isExpanded(invoice.id) ? 'Ocultar lançamentos' : 'Ver lançamentos' }}
+        </button>
+      </div>
+
+      @if (details()[invoice.id]; as detail) {
+        <table class="detail-table">
+          <tr>
+            <th>Data</th>
+            <th>Descrição</th>
+            <th>Categoria</th>
+            <th class="amount-col">Valor</th>
+          </tr>
+          @for (line of detail.transactions; track line.id) {
+            <tr [class.adjustment]="line.type === 'INVOICE_ADJUSTMENT'">
+              <td>{{ line.date | date: 'dd/MM' }}</td>
+              <td>{{ line.description }}</td>
+              <td>
+                @if (line.categoryName) {
+                  <span class="tag" [style.background]="(line.categoryColor ?? '#4f8ef7') + '26'"
+                        [style.color]="line.categoryColor ?? '#4f8ef7'">
+                    {{ line.categoryIcon }} {{ line.categoryName }}
+                  </span>
+                }
+              </td>
+              <td class="amount-col">{{ line.amount | currency: 'BRL' }}</td>
+            </tr>
+          }
+        </table>
+      }
+    </div>
+  }
+}

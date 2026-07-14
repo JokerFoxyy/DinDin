@@ -1,12 +1,13 @@
 name: CI - API
 
+# Sem filtro de `paths` no gatilho: o job `build-and-test` é required no ruleset, então
+# precisa SEMPRE reportar um status. A detecção de mudança acontece dentro do job — quando
+# `api/` não muda, os passos pesados são pulados e o job conclui como sucesso (skip).
 on:
   push:
     branches: [main, develop, 'feature/**']
-    paths: ['api/**', '.github/workflows/ci-api.yml']
   pull_request:
     branches: [main, develop]
-    paths: ['api/**', '.github/workflows/ci-api.yml']
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -17,14 +18,35 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
-    defaults:
-      run:
-        working-directory: api
-
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect API changes
+        id: changes
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            head="${{ github.event.pull_request.head.sha }}"
+          else
+            base="${{ github.event.before }}"
+            head="${{ github.sha }}"
+          fi
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            echo "api=true" >> "$GITHUB_OUTPUT"
+            echo "Base desconhecida — rodando build completo."
+            exit 0
+          fi
+          files=$(git diff --name-only "$base" "$head" || echo "")
+          if echo "$files" | grep -qE '^(api/|\.github/workflows/ci-api\.yml)'; then
+            echo "api=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "api=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set up JDK 21
+        if: steps.changes.outputs.api == 'true'
         uses: actions/setup-java@v4
         with:
           java-version: '21'
@@ -32,12 +54,14 @@ jobs:
           cache: maven
 
       - name: Build and Test (Testcontainers + JaCoCo 90%)
+        if: steps.changes.outputs.api == 'true'
+        working-directory: api
         run: |
           chmod +x mvnw
           ./mvnw clean verify -B
 
       - name: Upload test results
-        if: always()
+        if: always() && steps.changes.outputs.api == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: test-results
@@ -45,7 +69,7 @@ jobs:
           retention-days: 7
 
       - name: Upload JaCoCo coverage report
-        if: always()
+        if: always() && steps.changes.outputs.api == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report-api
@@ -53,13 +77,17 @@ jobs:
           retention-days: 7
 
       - name: Coverage summary
-        if: always()
+        if: always() && steps.changes.outputs.api == 'true'
         run: |
-          if [ -f target/site/jacoco/index.html ]; then
+          if [ -f api/target/site/jacoco/index.html ]; then
             echo "## Coverage Report (API)" >> $GITHUB_STEP_SUMMARY
             echo "JaCoCo coverage report generated. Download the artifact for details." >> $GITHUB_STEP_SUMMARY
             echo "Minimum required: **90% line coverage** (enforced by JaCoCo check in verify)" >> $GITHUB_STEP_SUMMARY
           fi
+
+      - name: No API changes
+        if: steps.changes.outputs.api != 'true'
+        run: echo "Sem mudanças em api/ neste PR — build-and-test concluído como sucesso (skip)."
 
   docker:
     needs: build-and-test

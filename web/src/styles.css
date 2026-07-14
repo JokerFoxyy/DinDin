@@ -129,3 +129,82 @@ td { padding: 9px 8px; border-bottom: 1px solid rgba(42, 50, 64, .5); }
   font-size: 13px;
   margin-bottom: 14px;
 }
+
+/* Utilitários compartilhados entre componentes (globais para atravessar a
+   encapsulação do Angular — usados por painéis-filhos como accounts/categories). */
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.panel-header h2 { margin-bottom: 0; }
+
+.inline-form {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 16px;
+  background: var(--card2);
+}
+.inline-form select {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--text);
+}
+.inline-form input { background: var(--bg); }
+
+.days-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btn-ghost {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.empty {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.row-actions {
+  display: flex;
+  gap: 14px;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.link.danger { color: var(--red); }
+.link:disabled { color: var(--muted); cursor: not-allowed; }
+
+input[type='color'] {
+  height: 40px;
+  padding: 4px;
+  cursor: pointer;
+}
