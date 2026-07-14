@@ -17,6 +17,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID>,
 
 	List<Transaction> findAllByUserIdOrderByDateAsc(UUID userId);
 
+	List<Transaction> findAllByInvoiceIdOrderByDateAsc(UUID invoiceId);
+
 	void deleteByUserId(UUID userId);
 
 	@Query("select new com.dindin.api.transaction.CategorySpent(t.categoryId, sum(t.amount)) "

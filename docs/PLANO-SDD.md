@@ -104,11 +104,11 @@ Pré-req: #6.
 
 **#S — Segurança (STRIDE + LGPD)** ✅ CONCLUÍDA (2026-07-11 — inserida a pedido do usuário; SDD: `docs/session-S-seguranca/SDD.md`; docs: `docs/security/`). Migration **V4** (`refresh_tokens`). Auth migrada para cookies httpOnly + refresh rotacionado/revogável; rate limiting; fail-fast de segredos em prod; security headers; endpoints LGPD de exportação/exclusão. 101 testes API + 77 web.
 
-**#8 — Fixos Recorrentes**
+**#8 — Fixos Recorrentes** ✅ CONCLUÍDA (2026-07-12 — SDD: `docs/session-08-fixos-recorrentes/SDD.md`)
 Tasks: (1) migration **V5** (V4 usada na sessão #S) + CRUD; (2) job mensal de materialização + flag "pago?"; (3) tela Fixos com checkbox; (4) testes do job + verificação.
 Pré-req: #6.
 
-**#9 — Fechamento de Fatura**
+**#9 — Fechamento de Fatura** ✅ CONCLUÍDA (2026-07-13 — SDD: `docs/session-09-fechamento-fatura/SDD.md`; sem migration)
 Tasks: (1) ciclo de vida da fatura (OPEN → CLOSED → PAID) + total lançado vs. declarado; (2) lançamento automático de ajuste (INVOICE_ADJUSTMENT) e redução ao detalhar; (3) UI de fatura por cartão; (4) testes + verificação.
 Pré-req: #6.
 

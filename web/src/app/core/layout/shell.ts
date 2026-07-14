@@ -24,6 +24,7 @@ export class Shell implements OnInit {
   readonly navItems: NavItem[] = [
     { icon: '📊', label: 'Dashboard', path: '/dashboard' },
     { icon: '💸', label: 'Transações', path: '/transacoes' },
+    { icon: '💳', label: 'Faturas', path: '/faturas' },
     { icon: '📈', label: 'Investimentos', path: '/investimentos' },
     { icon: '🎯', label: 'Metas', path: '/metas' },
     { icon: '🔁', label: 'Fixos', path: '/fixos' },

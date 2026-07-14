@@ -51,6 +51,8 @@ class UserDataServiceTest {
 	@Mock
 	private CardInvoiceRepository cardInvoiceRepository;
 	@Mock
+	private com.dindin.api.recurring.RecurringTransactionRepository recurringRepository;
+	@Mock
 	private RefreshTokenRepository refreshTokenRepository;
 
 	@InjectMocks
@@ -82,11 +84,12 @@ class UserDataServiceTest {
 		when(categoryRepository.findAllByUserIdOrderByNameAsc(userId)).thenReturn(List.of(category));
 		when(transactionRepository.findAllByUserIdOrderByDateAsc(userId)).thenReturn(List.of(transaction));
 		when(cardInvoiceRepository.findByAccountIdIn(anyList())).thenReturn(List.of(invoice));
+		when(recurringRepository.findAllByUserIdOrderByDescriptionAsc(userId)).thenReturn(List.of());
 
 		Map<String, Object> export = service.export(userId);
 
 		assertThat(export).containsKeys("exportedAt", "user", "accounts", "categories",
-				"transactions", "cardInvoices");
+				"transactions", "cardInvoices", "recurringTransactions");
 		assertThat((List<?>) export.get("transactions")).hasSize(1);
 		assertThat(export.get("user").toString()).contains("victor@dindin.com");
 	}
@@ -106,9 +109,10 @@ class UserDataServiceTest {
 
 		service.deleteAccount(userId);
 
-		InOrder order = inOrder(transactionRepository, cardInvoiceRepository, categoryRepository,
-				accountRepository, refreshTokenRepository, userRepository);
+		InOrder order = inOrder(transactionRepository, recurringRepository, cardInvoiceRepository,
+				categoryRepository, accountRepository, refreshTokenRepository, userRepository);
 		order.verify(transactionRepository).deleteByUserId(userId);
+		order.verify(recurringRepository).deleteByUserId(userId);
 		order.verify(cardInvoiceRepository).deleteByAccountIdIn(List.of(account.getId()));
 		order.verify(categoryRepository).deleteByUserId(userId);
 		order.verify(accountRepository).deleteByUserId(userId);
