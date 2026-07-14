@@ -164,9 +164,16 @@ Pré-req: #11.
 Tasks: (1) Dockerfiles ARM64 (JVM tunada `-XX:MaxRAMPercentage=50`) + compose de produção com Caddy (TLS + proxy `/api`); (2) Lightsail US$5 (decisão da spec; alternativa EC2 t4g.micro + Savings Plan); (3) backup pg_dump → S3 com lifecycle 30 dias + swap 2 GB; (4) GitHub Actions deploy via SSH; (5) verificação end-to-end em produção.
 Pré-req: #4 + MVP estável (recomendado após #12).
 
-### Fase 4 — Futuro (sem sessão planejada ainda)
+### Fase 4 — Open Finance
 
-Multi-tenancy real, plano free/pago, Open Finance (Pluggy/Belvo), cotações via brapi.dev, app mobile consumindo a mesma API, feature "a receber/emprestado" (contas mãe).
+**#22 — Conexão bancária via Open Finance** (sessão formal, a refinar quando a Fase 3 terminar)
+Ideia inicial: conectar contas de banco via agregador certificado em Open Finance (Pluggy ou Belvo) para puxar extratos/saldos automaticamente, reduzindo lançamento manual.
+Tasks a refinar: (1) avaliar Pluggy vs. Belvo (custo por conta conectada, cobertura de bancos, free tier); (2) fluxo de consentimento OAuth do usuário com o banco (conexão, expiração/reautenticação de token); (3) endpoint/job de sincronização periódica de extratos → mapeamento para `transactions` (evitar duplicidade com lançamentos manuais); (4) UI de gerenciamento de conexões bancárias; (5) verificação end-to-end com conta de banco real (sandbox do agregador).
+Pré-req: Fase 3 completa (MVP estável + deploy). Risco/trade-off a decidir: custo recorrente por conta conectada escala com base de usuários — mais vantajoso enquanto uso é pessoal (poucas contas) do que se o produto virar SaaS multiusuário sem repasse desse custo.
+
+### Fase 5 — Futuro (sem sessão planejada ainda)
+
+Multi-tenancy real, plano free/pago, cotações via brapi.dev, app mobile consumindo a mesma API, feature "a receber/emprestado" (contas mãe).
 
 ## 6. Grafo de dependências (resumo)
 
