@@ -107,7 +107,15 @@ Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/post
 - `/api/v1/budgets`: `GET ?month=YYYY-MM` retorna o relatório orçado × realizado (só categorias com orçamento definido no mês); `POST` cria (categoria + mês + valor); `PUT /{id}` edita só o valor (categoria/mês são imutáveis — para trocar, excluir e recriar); `DELETE /{id}`.
 - Só categoria `kind=EXPENSE` pode ter orçamento (400 caso contrário); único orçamento por (user, categoria, mês) → 409.
 - Realizado = soma de `transactions` tipo `EXPENSE` da categoria no mês (`TransactionRepository.sumExpensesByCategory`); `percentage`/`over` calculados no `BudgetReportResponse.from`. Tela usa `.bar-bg`/`.bar`/`.bar.over` (já existentes em `styles.css`) para a barra de progresso.
-- Migration **V6** (V5 já estava reservada pela sessão #8 — fixos recorrentes —, ainda com PR aberto no momento desta sessão).
+- Migration **V6** (V5 já estava reservada pela sessão #8 — fixos recorrentes).
+
+## Dashboard (sessão #11)
+
+- `/api/v1/dashboard/summary?month=YYYY-MM`: entradas/gastos do mês, saldo do mês (`entradas − gastos`), saldo acumulado (soma de todas as transações desde 1970-01-01 até o fim do mês — saldo nunca é armazenado, sempre calculado), gasto por categoria (`TransactionRepository.sumExpensesByCategoryForMonth`, sem filtro de categorias — diferente da query usada por Orçamentos) e o mesmo `budgetReport` da sessão #10 (reaproveita `BudgetService.report` diretamente).
+- `/api/v1/dashboard/annual?month=YYYY-MM`: série de janeiro até o mês selecionado (não 12 meses fixos), `{month, income, expense}` por mês.
+- Frontend usa **Chart.js puro** (`chart.js/auto`, sem `ng2-charts` — a versão atual exige `@angular/cdk` como peer dependency, não usado no projeto).
+- **Gotcha de timing**: o `<canvas>` do gráfico só existe no DOM depois que o Angular processa o `@if` que envolve os dados carregados via HTTP — usar `afterNextRender(callback, {injector})` para criar o `Chart` (não `setTimeout(0)`: o `ViewChild` ainda é `undefined` nesse ponto).
+- **Gotcha de animação**: sempre passar `animation: false` nas opções do Chart.js — a animação inicial depende de `requestAnimationFrame`, que não progride de forma confiável em navegadores automatizados (o gráfico ficava com o canvas em branco/0 pixels desenhados até essa opção ser adicionada). Usar também `maintainAspectRatio: false` (senão o Chart.js força proporção quadrada/2:1 e estoura a altura fixa do `.chart-box`).
 
 ## Auth & Segurança (sessões #2 e #S)
 
