@@ -39,10 +39,11 @@ describe('Shell', () => {
 
     const items = fixture.nativeElement.querySelectorAll('.nav-item');
     const labels = Array.from(items).map((el) => (el as HTMLElement).textContent?.trim());
-    expect(items.length).toBe(7);
+    expect(items.length).toBe(8);
     expect(labels.join(' ')).toContain('Dashboard');
     expect(labels.join(' ')).toContain('Transações');
     expect(labels.join(' ')).toContain('Faturas');
+    expect(labels.join(' ')).toContain('Orçamentos');
     expect(labels.join(' ')).toContain('Configurações');
   });
 
