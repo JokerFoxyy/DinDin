@@ -42,7 +42,7 @@ describe('Shell', () => {
     expect(items.length).toBe(7);
     expect(labels.join(' ')).toContain('Dashboard');
     expect(labels.join(' ')).toContain('Transações');
-    expect(labels.join(' ')).toContain('Faturas');
+    expect(labels.join(' ')).toContain('Orçamentos');
     expect(labels.join(' ')).toContain('Configurações');
   });
 

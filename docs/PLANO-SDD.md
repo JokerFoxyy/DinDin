@@ -52,12 +52,13 @@ O schema completo está na seção 2 da spec (`spec-app-financeiro.md`) e vira a
 - **V1:** `users`
 - **V2:** `accounts` (CHECKING | CREDIT_CARD | CASH, closing_day/due_day), `categories` (EXPENSE | INCOME, icon, color)
 - **V3:** `transactions` (EXPENSE | INCOME | INVOICE_ADJUSTMENT, account obrigatória, invoice_id), `card_invoices` (OPEN | CLOSED | PAID, declared_total)
-- **V4:** `recurring_transactions` (fixos com day_of_month, active)
-- **V5:** `budgets` (categoria × mês × valor esperado)
-- **V6:** `goals` + `goal_contributions`
-- **V7:** `investments` (RESERVA | RENDA_FIXA | RENDA_VARIAVEL) + `investment_entries` (APORTE | RESGATE | ATUALIZACAO_SALDO)
+- **V4:** `refresh_tokens` (sessão #S, segurança — não estava no plano original, entrou na frente por pedido do usuário)
+- **V5:** `recurring_transactions` (fixos com day_of_month, active) — sessão #8
+- **V6:** `budgets` (categoria × mês × valor esperado) — sessão #10
+- **V7:** `goals` + `goal_contributions`
+- **V8:** `investments` (RESERVA | RENDA_FIXA | RENDA_VARIAVEL) + `investment_entries` (APORTE | RESGATE | ATUALIZACAO_SALDO)
 
-Cada migration entra na sessão que implementa a feature correspondente.
+Cada migration entra na sessão que implementa a feature correspondente. Numeração vai sendo ajustada conforme a ordem real de merge (não a ordem do roadmap), já que sessões podem ficar com PR aberto aguardando aprovação do usuário antes de outra ser iniciada.
 
 ## 4. Regras de negócio críticas
 
@@ -111,9 +112,9 @@ Pré-req: #6.
 Tasks: (1) ciclo de vida da fatura (OPEN → CLOSED → PAID) + total lançado vs. declarado; (2) lançamento automático de ajuste (INVOICE_ADJUSTMENT) e redução ao detalhar; (3) UI de fatura por cartão; (4) testes + verificação.
 Pré-req: #6.
 
-**#10 — Orçamentos (orçado vs. realizado)**
-Tasks: (1) migration V5 + CRUD budgets; (2) endpoint orçado × realizado por categoria/mês; (3) tabela com barras de progresso (vermelho ao estourar, como no protótipo); (4) verificação.
-Pré-req: #6.
+**#10 — Orçamentos (orçado vs. realizado)** (2026-07-13 — SDD: `docs/session-10-orcamentos/SDD.md`; sessões #8/#9 aguardando merge, PR próprio)
+Tasks: (1) migration **V6** (V5 reservada pela sessão #8, PR #15, ainda não mergeada) + CRUD budgets; (2) endpoint orçado × realizado por categoria/mês; (3) tabela com barras de progresso (vermelho ao estourar, como no protótipo); (4) verificação.
+Pré-req: #6. 126 testes API (JaCoCo ≥90%), testes web com cobertura ≥90/80/90/90.
 
 **#11 — Dashboard Mensal + Panorama Anual**
 Tasks: (1) endpoints agregados (entradas, gastos, saldo do mês, saldo acumulado, gasto por categoria, série anual); (2) cards + donut de categorias + tabela orçado/realizado; (3) gráfico de barras anual (entradas × gastos); (4) verificação visual contra o protótipo.
