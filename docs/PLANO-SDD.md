@@ -112,12 +112,12 @@ Pré-req: #6.
 Tasks: (1) ciclo de vida da fatura (OPEN → CLOSED → PAID) + total lançado vs. declarado; (2) lançamento automático de ajuste (INVOICE_ADJUSTMENT) e redução ao detalhar; (3) UI de fatura por cartão; (4) testes + verificação.
 Pré-req: #6.
 
-**#10 — Orçamentos (orçado vs. realizado)** (2026-07-13 — SDD: `docs/session-10-orcamentos/SDD.md`; sessões #8/#9 aguardando merge, PR próprio)
-Tasks: (1) migration **V6** (V5 reservada pela sessão #8, PR #15, ainda não mergeada) + CRUD budgets; (2) endpoint orçado × realizado por categoria/mês; (3) tabela com barras de progresso (vermelho ao estourar, como no protótipo); (4) verificação.
+**#10 — Orçamentos (orçado vs. realizado)** ✅ CONCLUÍDA (2026-07-13 — SDD: `docs/session-10-orcamentos/SDD.md`)
+Tasks: (1) migration **V6** (V5 reservada pela sessão #8) + CRUD budgets; (2) endpoint orçado × realizado por categoria/mês; (3) tabela com barras de progresso (vermelho ao estourar, como no protótipo); (4) verificação.
 Pré-req: #6. 126 testes API (JaCoCo ≥90%), testes web com cobertura ≥90/80/90/90.
 
-**#11 — Dashboard Mensal + Panorama Anual**
-Tasks: (1) endpoints agregados (entradas, gastos, saldo do mês, saldo acumulado, gasto por categoria, série anual); (2) cards + donut de categorias + tabela orçado/realizado; (3) gráfico de barras anual (entradas × gastos); (4) verificação visual contra o protótipo.
+**#11 — Dashboard Mensal + Panorama Anual** ✅ CONCLUÍDA (2026-07-13 — SDD: `docs/session-11-dashboard/SDD.md`)
+Tasks: (1) endpoints agregados (entradas, gastos, saldo do mês, saldo acumulado, gasto por categoria, série anual); (2) cards + donut de categorias + tabela orçado/realizado; (3) gráfico de barras anual (entradas × gastos); (4) verificação visual contra o protótipo. Chart.js puro (sem `ng2-charts`, que exigiria `@angular/cdk`). 168 testes API (JaCoCo ≥90%), 126 testes web (cobertura ≥90/80/90/90).
 Pré-req: #7, #10.
 
 **#12 — Import da Planilha xlsx**
