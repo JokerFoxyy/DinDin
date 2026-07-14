@@ -102,13 +102,11 @@ Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/post
 - Delete de conta/categoria com transações → 409 (`DataIntegrityViolationException` no handler global).
 - Filtros dinâmicos usam **JPA Specification** — não usar `(:param is null or ...)` em JPQL com UUID (quebra no Postgres/Hibernate 6).
 
-## Fixos recorrentes (sessão #8)
+## Fechamento de fatura (sessão #9)
 
-- `/api/v1/recurring`: CRUD de templates (Spotify, academia...): description, amount, type (EXPENSE/INCOME), account, category, `dayOfMonth` (1–31), `active`, `endDate` opcional.
-- **Materialização:** `RecurringMaterializationService` cria a transação da ocorrência do mês (idempotente por `recurring_id`+mês; dia clampado ao fim do mês; vincula fatura se cartão). Transações materializadas nascem `paid=false`; manuais são `paid=true`.
-- Job `@Scheduled(cron ...)` mensal (`@EnableScheduling` na ApiApplication) materializa todos os fixos ativos do mês corrente. `POST /v1/recurring/materialize?month=` faz sob demanda; `GET /v1/recurring/occurrences?month=` é só leitura.
-- "pago?": `PUT /v1/transactions/{id}/paid` `{paid}` (PUT, não PATCH — TestRestTemplate não faz PATCH). `Transaction` ganhou colunas `recurring_id` + `paid` (migration V5 fez ALTER).
-- Migrations: V4 = refresh_tokens (#S), **V5 = recurring_transactions + alter transactions**.
+- `/api/v1/invoices`: `GET ?month=` (faturas dos cartões no mês), `GET /{id}` (detalhe), `POST /{id}/close` `{declaredTotal}`, `POST /{id}/pay`, `POST /{id}/reopen`. Ciclo OPEN → CLOSED → PAID; transição inválida → 400.
+- **Ajuste:** `diff = declaredTotal − launched` (launched = soma das transações da fatura exceto `INVOICE_ADJUSTMENT`). `diff > 0` cria/atualiza um único `INVOICE_ADJUSTMENT`; `diff ≤ 0` remove. Reconciliação roda em `close`, `getDetail` **e `list()`** (senão a listagem mostra ajuste velho após detalhar) — implementa "o ajuste diminui conforme você detalha".
+- `InvoiceService` não altera `TransactionService`/`Transaction` (só finders); **sem migration**. Sidebar: **💳 Faturas** (`/faturas`).
 
 ## Auth & Segurança (sessões #2 e #S)
 

@@ -14,6 +14,8 @@ public interface CardInvoiceRepository extends JpaRepository<CardInvoice, UUID> 
 
 	List<CardInvoice> findByAccountIdIn(Collection<UUID> accountIds);
 
+	List<CardInvoice> findByAccountIdInAndMonthOrderByCreatedAtAsc(Collection<UUID> accountIds, LocalDate month);
+
 	void deleteByAccountIdIn(Collection<UUID> accountIds);
 
 }

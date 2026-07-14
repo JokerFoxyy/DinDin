@@ -63,6 +63,19 @@ public class CardInvoice {
 		}
 	}
 
+	public void close(BigDecimal declaredTotal) {
+		this.declaredTotal = declaredTotal;
+		this.status = InvoiceStatus.CLOSED;
+	}
+
+	public void pay() {
+		this.status = InvoiceStatus.PAID;
+	}
+
+	public void reopen() {
+		this.status = InvoiceStatus.OPEN;
+	}
+
 	public UUID getId() {
 		return id;
 	}
