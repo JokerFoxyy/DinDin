@@ -102,6 +102,13 @@ Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/post
 - Delete de conta/categoria com transações → 409 (`DataIntegrityViolationException` no handler global).
 - Filtros dinâmicos usam **JPA Specification** — não usar `(:param is null or ...)` em JPQL com UUID (quebra no Postgres/Hibernate 6).
 
+## Orçamentos (sessão #10)
+
+- `/api/v1/budgets`: `GET ?month=YYYY-MM` retorna o relatório orçado × realizado (só categorias com orçamento definido no mês); `POST` cria (categoria + mês + valor); `PUT /{id}` edita só o valor (categoria/mês são imutáveis — para trocar, excluir e recriar); `DELETE /{id}`.
+- Só categoria `kind=EXPENSE` pode ter orçamento (400 caso contrário); único orçamento por (user, categoria, mês) → 409.
+- Realizado = soma de `transactions` tipo `EXPENSE` da categoria no mês (`TransactionRepository.sumExpensesByCategory`); `percentage`/`over` calculados no `BudgetReportResponse.from`. Tela usa `.bar-bg`/`.bar`/`.bar.over` (já existentes em `styles.css`) para a barra de progresso.
+- Migration **V6** (V5 já estava reservada pela sessão #8 — fixos recorrentes —, ainda com PR aberto no momento desta sessão).
+
 ## Auth & Segurança (sessões #2 e #S)
 
 **Modelo de sessão (reescrito na #S):** cookies httpOnly, não JWT no localStorage.
