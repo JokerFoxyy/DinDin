@@ -2,7 +2,7 @@ name: CI - Web
 
 on:
   push:
-    branches: [main, develop, 'feature/**']
+    branches: [main, develop]
     paths: ['web/**', '.github/workflows/ci-web.yml']
   pull_request:
     branches: [main, develop]
