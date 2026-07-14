@@ -1,0 +1,81 @@
+<div class="topbar">
+  <h1>Dashboard</h1>
+  <app-month-picker [month]="month()" (monthChange)="onMonthChange($event)" />
+</div>
+
+@if (summary(); as data) {
+  <div class="cards">
+    <div class="card">
+      <div class="label">Entradas</div>
+      <div class="value pos">{{ data.income | currency: 'BRL' }}</div>
+    </div>
+    <div class="card">
+      <div class="label">Gastos</div>
+      <div class="value neg">{{ data.expense | currency: 'BRL' }}</div>
+    </div>
+    <div class="card">
+      <div class="label">Saldo do mês</div>
+      <div class="value" [class.pos]="data.monthBalance >= 0" [class.neg]="data.monthBalance < 0">
+        {{ data.monthBalance | currency: 'BRL' }}
+      </div>
+    </div>
+    <div class="card">
+      <div class="label">Saldo acumulado</div>
+      <div class="value" [class.pos]="data.cumulativeBalance >= 0" [class.neg]="data.cumulativeBalance < 0">
+        {{ data.cumulativeBalance | currency: 'BRL' }}
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h2>Gastos por categoria</h2>
+      @if (data.categorySpend.length === 0) {
+        <p class="empty">Nenhum gasto neste mês.</p>
+      } @else {
+        <div class="chart-box"><canvas #donutCanvas></canvas></div>
+      }
+    </div>
+    <div class="panel">
+      <h2>Orçado vs. realizado</h2>
+      @if (data.budgetReport.length === 0) {
+        <p class="empty">Nenhum orçamento definido neste mês.</p>
+      } @else {
+        <table>
+          <tr>
+            <th>Categoria</th>
+            <th class="amount-col">Orçado</th>
+            <th class="amount-col">Gasto</th>
+            <th class="bar-col">Progresso</th>
+          </tr>
+          @for (budget of data.budgetReport; track budget.id) {
+            <tr>
+              <td>
+                <span class="tag" [style.background]="(budget.categoryColor ?? '#4f8ef7') + '26'"
+                      [style.color]="budget.categoryColor ?? '#4f8ef7'">
+                  {{ budget.categoryIcon }} {{ budget.categoryName }}
+                </span>
+              </td>
+              <td class="amount-col">{{ budget.budgeted | currency: 'BRL' }}</td>
+              <td class="amount-col" [class.neg]="budget.over">{{ budget.spent | currency: 'BRL' }}</td>
+              <td class="bar-col">
+                <div class="bar-bg">
+                  <div class="bar" [class.over]="budget.over" [style.width.%]="barWidth(budget.percentage)"></div>
+                </div>
+              </td>
+            </tr>
+          }
+        </table>
+      }
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Panorama anual — gastos × entradas</h2>
+    @if (annual().length === 0) {
+      <p class="empty">Sem dados suficientes.</p>
+    } @else {
+      <div class="chart-box"><canvas #annualCanvas></canvas></div>
+    }
+  </div>
+}
