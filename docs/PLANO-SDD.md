@@ -120,8 +120,8 @@ Pré-req: #6. 126 testes API (JaCoCo ≥90%), testes web com cobertura ≥90/80/
 Tasks: (1) endpoints agregados (entradas, gastos, saldo do mês, saldo acumulado, gasto por categoria, série anual); (2) cards + donut de categorias + tabela orçado/realizado; (3) gráfico de barras anual (entradas × gastos); (4) verificação visual contra o protótipo. Chart.js puro (sem `ng2-charts`, que exigiria `@angular/cdk`). 168 testes API (JaCoCo ≥90%), 126 testes web (cobertura ≥90/80/90/90).
 Pré-req: #7, #10.
 
-**#12 — Import da Planilha xlsx**
-Tasks: (1) parser Apache POI da Planilha_Gastos_2026 (abas mensais, fixos, entradas); (2) endpoint de upload + mapeamento categorias/contas + idempotência; (3) UI de importação com preview; (4) verificação com a planilha real.
+**#12 — Import da Planilha xlsx** ✅ CONCLUÍDA (2026-07-14 — SDD: `docs/session-12-import-planilha/SDD.md`). **Fase 1 (MVP) completa.**
+Tasks: (1) parser Apache POI da Planilha_Gastos_2026 (abas mensais, fixos, entradas); (2) endpoint de upload + mapeamento categorias/contas + idempotência; (3) UI de importação com preview; (4) verificação com a planilha real. Verificado com o arquivo real do usuário: 440 linhas, 439 transações criadas, idempotência confirmada (reimport pula tudo como duplicata). 183 testes API (JaCoCo ≥90%), 134 testes web (cobertura ≥90/80/90/90).
 Pré-req: #11. **Critério de sucesso da Fase 1: abandonar a planilha no mês seguinte.**
 
 ### Fase 2 — Investimentos
