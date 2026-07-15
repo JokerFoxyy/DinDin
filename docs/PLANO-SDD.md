@@ -130,8 +130,8 @@ Pré-req: #11. **Critério de sucesso da Fase 1: abandonar a planilha no mês se
 Tasks: (1) migration V7 + CRUD investments/entries (aporte, resgate, atualização de saldo); (2) cálculo de rentabilidade TWR por período e por classe; (3) testes + verificação. 207 testes API (JaCoCo ≥90%).
 Pré-req: #2 (independente do MVP).
 
-**#14 — Integração CDI (Bacen SGS)**
-Tasks: (1) client HTTP da série 12 com cache local; (2) endpoint carteira × CDI acumulado; (3) testes com mock + verificação.
+**#14 — Integração CDI (Bacen SGS)** ✅ CONCLUÍDA (2026-07-15 — SDD: `docs/session-14-integracao-cdi/SDD.md`)
+Tasks: (1) client HTTP da série 12 com cache local; (2) endpoint carteira × CDI acumulado; (3) testes com mock + verificação. 216 testes API (JaCoCo ≥90%); verificado com a API real do Bacen.
 Pré-req: #13.
 
 **#15 — Investimentos (frontend)**
