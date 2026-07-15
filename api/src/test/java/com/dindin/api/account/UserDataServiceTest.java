@@ -7,6 +7,9 @@ import com.dindin.api.category.CategoryRepository;
 import com.dindin.api.common.error.NotFoundException;
 import com.dindin.api.invoice.CardInvoice;
 import com.dindin.api.invoice.CardInvoiceRepository;
+import com.dindin.api.investment.AssetClass;
+import com.dindin.api.investment.Investment;
+import com.dindin.api.investment.InvestmentRepository;
 import com.dindin.api.transaction.Transaction;
 import com.dindin.api.transaction.TransactionRepository;
 import com.dindin.api.transaction.TransactionType;
@@ -54,6 +57,8 @@ class UserDataServiceTest {
 	private com.dindin.api.recurring.RecurringTransactionRepository recurringRepository;
 	@Mock
 	private RefreshTokenRepository refreshTokenRepository;
+	@Mock
+	private InvestmentRepository investmentRepository;
 
 	@InjectMocks
 	private UserDataService service;
@@ -78,6 +83,7 @@ class UserDataServiceTest {
 				"Padaria", new BigDecimal("31.73"), LocalDate.of(2026, 7, 9), TransactionType.EXPENSE));
 		CardInvoice invoice = withId(new CardInvoice(account.getId(), LocalDate.of(2026, 7, 1),
 				LocalDate.of(2026, 7, 28), LocalDate.of(2026, 8, 7)));
+		Investment investment = withId(new Investment(userId, "Tesouro Selic", AssetClass.RENDA_FIXA, "NuInvest"));
 
 		when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user()));
 		when(accountRepository.findAllByUserIdOrderByNameAsc(userId)).thenReturn(List.of(account));
@@ -85,11 +91,12 @@ class UserDataServiceTest {
 		when(transactionRepository.findAllByUserIdOrderByDateAsc(userId)).thenReturn(List.of(transaction));
 		when(cardInvoiceRepository.findByAccountIdIn(anyList())).thenReturn(List.of(invoice));
 		when(recurringRepository.findAllByUserIdOrderByDescriptionAsc(userId)).thenReturn(List.of());
+		when(investmentRepository.findAllByUserIdOrderByCreatedAtAsc(userId)).thenReturn(List.of(investment));
 
 		Map<String, Object> export = service.export(userId);
 
 		assertThat(export).containsKeys("exportedAt", "user", "accounts", "categories",
-				"transactions", "cardInvoices", "recurringTransactions");
+				"transactions", "cardInvoices", "recurringTransactions", "investments");
 		assertThat((List<?>) export.get("transactions")).hasSize(1);
 		assertThat(export.get("user").toString()).contains("victor@dindin.com");
 	}
@@ -110,12 +117,13 @@ class UserDataServiceTest {
 		service.deleteAccount(userId);
 
 		InOrder order = inOrder(transactionRepository, recurringRepository, cardInvoiceRepository,
-				categoryRepository, accountRepository, refreshTokenRepository, userRepository);
+				categoryRepository, accountRepository, investmentRepository, refreshTokenRepository, userRepository);
 		order.verify(transactionRepository).deleteByUserId(userId);
 		order.verify(recurringRepository).deleteByUserId(userId);
 		order.verify(cardInvoiceRepository).deleteByAccountIdIn(List.of(account.getId()));
 		order.verify(categoryRepository).deleteByUserId(userId);
 		order.verify(accountRepository).deleteByUserId(userId);
+		order.verify(investmentRepository).deleteByUserId(userId);
 		order.verify(refreshTokenRepository).deleteByUserId(userId);
 		order.verify(userRepository).deleteById(userId);
 	}

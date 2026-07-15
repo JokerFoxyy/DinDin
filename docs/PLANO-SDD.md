@@ -126,8 +126,8 @@ Pré-req: #11. **Critério de sucesso da Fase 1: abandonar a planilha no mês se
 
 ### Fase 2 — Investimentos
 
-**#13 — Investimentos (backend)**
-Tasks: (1) migration V7 + CRUD investments/entries (aporte, resgate, atualização de saldo); (2) cálculo de rentabilidade TWR por período e por classe; (3) testes + verificação.
+**#13 — Investimentos (backend)** ✅ CONCLUÍDA (2026-07-14 — SDD: `docs/session-13-investimentos-backend/SDD.md`)
+Tasks: (1) migration V7 + CRUD investments/entries (aporte, resgate, atualização de saldo); (2) cálculo de rentabilidade TWR por período e por classe; (3) testes + verificação. 207 testes API (JaCoCo ≥90%).
 Pré-req: #2 (independente do MVP).
 
 **#14 — Integração CDI (Bacen SGS)**
