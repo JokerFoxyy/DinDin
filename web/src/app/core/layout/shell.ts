@@ -29,6 +29,7 @@ export class Shell implements OnInit {
     { icon: '🎯', label: 'Metas', path: '/metas' },
     { icon: '🔁', label: 'Fixos', path: '/fixos' },
     { icon: '📋', label: 'Orçamentos', path: '/orcamentos' },
+    { icon: '📥', label: 'Importar', path: '/importar' },
     { icon: '⚙️', label: 'Configurações', path: '/configuracoes' }
   ];
 

@@ -43,6 +43,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/budgets/budgets').then((m) => m.Budgets)
       },
       {
+        path: 'importar',
+        loadComponent: () => import('./features/importer/importer').then((m) => m.Importer)
+      },
+      {
         path: 'configuracoes',
         loadComponent: () => import('./features/settings/settings').then((m) => m.Settings)
       }

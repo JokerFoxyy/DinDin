@@ -117,6 +117,16 @@ Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/post
 - **Gotcha de timing**: o `<canvas>` do gráfico só existe no DOM depois que o Angular processa o `@if` que envolve os dados carregados via HTTP — usar `afterNextRender(callback, {injector})` para criar o `Chart` (não `setTimeout(0)`: o `ViewChild` ainda é `undefined` nesse ponto).
 - **Gotcha de animação**: sempre passar `animation: false` nas opções do Chart.js — a animação inicial depende de `requestAnimationFrame`, que não progride de forma confiável em navegadores automatizados (o gráfico ficava com o canvas em branco/0 pixels desenhados até essa opção ser adicionada). Usar também `maintainAspectRatio: false` (senão o Chart.js força proporção quadrada/2:1 e estoura a altura fixa do `.chart-box`).
 
+## Import da planilha (sessão #12) — Fase 1 (MVP) completa
+
+- `/api/v1/import/preview?year=` (multipart `file`) e `/api/v1/import/commit?year=` (multipart `file` + parte JSON `mapping`) — fluxo em duas chamadas, sem estado no servidor (reenvia o arquivo nas duas).
+- `SpreadsheetParser` lê as 12 abas mensais (Janeiro..Dezembro) da Planilha_Gastos_2026 em **posições fixas de linha/coluna** (confirmado com o arquivo real do usuário: mesmo template nas 12 abas — não precisa de busca dinâmica de header). Ver `docs/session-12-import-planilha/SDD.md` para o mapeamento completo de cada seção (Fixos/Cartão/Gastos do Mês/Entradas).
+- Linhas "Diferença de totais" (Gastos do Mês) são puladas — esse conceito já é automatizado pelo `INVOICE_ADJUSTMENT` (sessão #9); importar duplicaria o ajuste. **Gotcha**: comparar com `"totai"`, não `"total"` — "totais" não contém "total" como substring (falta o "l").
+- Data da transação = mês/ano da própria aba (não a coluna "Data" da planilha, que é inconsistente — vem em branco em Fixos e às vezes carrega a data de compra original de anos anteriores em parcelas de Cartão).
+- Conta/categoria sem correspondência exata (case-insensitive) por nome viram "não mapeadas" no preview; usuário escolhe usar uma existente ou criar nova no commit. Entradas não tem coluna de conta na planilha — usa um nome-placeholder (`SpreadsheetParser.ENTRADAS_ACCOUNT_PLACEHOLDER`) que passa pelo mesmo fluxo de mapeamento.
+- Idempotência: antes de inserir, checa `(userId, accountId, description, amount, date, type)` idêntico já existente — permite rodar o import de novo sem duplicar (também deduplica linhas idênticas dentro do próprio arquivo).
+- Upload de arquivo real não é automatizável no browser de verificação (abre diálogo nativo do SO) — a verificação end-to-end com a planilha real do usuário foi feita via chamada HTTP direta (`curl` multipart) contra a API local.
+
 ## Auth & Segurança (sessões #2 e #S)
 
 **Modelo de sessão (reescrito na #S):** cookies httpOnly, não JWT no localStorage.
