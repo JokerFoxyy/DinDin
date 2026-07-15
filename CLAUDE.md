@@ -127,6 +127,15 @@ Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/post
 - Idempotência: antes de inserir, checa `(userId, accountId, description, amount, date, type)` idêntico já existente — permite rodar o import de novo sem duplicar (também deduplica linhas idênticas dentro do próprio arquivo).
 - Upload de arquivo real não é automatizável no browser de verificação (abre diálogo nativo do SO) — a verificação end-to-end com a planilha real do usuário foi feita via chamada HTTP direta (`curl` multipart) contra a API local.
 
+## Investimentos (sessão #13) — backend
+
+- `/v1/investments` (CRUD: name/institution/class na criação; update só edita `name`/`institution` — `class` é imutável, trocar quebraria a série histórica de rentabilidade por classe); `DELETE` apaga em cascata as `investment_entries` (`ON DELETE CASCADE` no banco — diferente de conta/categoria, nada mais referencia `investments`).
+- `/v1/investments/{id}/entries`: `GET` (lista ordenada por data), `POST` (`type`: `APORTE`/`RESGATE`/`ATUALIZACAO_SALDO`; `balanceAfter` obrigatório só em `ATUALIZACAO_SALDO` — 400 se faltar), `DELETE /{entryId}`.
+- `/v1/investments/report`: saldo atual + rentabilidade do último período por investimento e agregado por classe (`InvestmentReturnCalculator`).
+- **Cálculo (TWR simplificado)**: percorre as entries em ordem de data; `APORTE`/`RESGATE` somam/subtraem do saldo corrente; `ATUALIZACAO_SALDO` **substitui** o saldo pelo `balanceAfter` informado. Entre duas atualizações consecutivas: `fluxoLíquido = Σaportes − Σresgates` no período; `rendimento = saldoAtual − saldoAnterior − fluxoLíquido`; `percentual = rendimento / saldoAnterior × 100` (nulo com menos de duas atualizações). Agregação por classe roda o mesmo cálculo tratando todas as entries dos investimentos da classe como uma única linha do tempo.
+- Migration **V7**. LGPD (`UserDataService`): investimentos entram na exportação e na exclusão de conta (antes do `refreshTokenRepository`).
+- Frontend fica para a sessão #15 (Fase 2).
+
 ## Auth & Segurança (sessões #2 e #S)
 
 **Modelo de sessão (reescrito na #S):** cookies httpOnly, não JWT no localStorage.
