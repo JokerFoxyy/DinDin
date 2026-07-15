@@ -1,0 +1,53 @@
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+h1 {
+  font-size: 22px;
+}
+
+.setup-hint {
+  margin-bottom: 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+h2 {
+  font-size: 15px;
+  margin: 16px 0 12px;
+  color: var(--text);
+}
+
+h2:first-child {
+  margin-top: 0;
+}
+
+.inline-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.inline-form select {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.amount-col {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+}

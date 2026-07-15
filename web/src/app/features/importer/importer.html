@@ -1,0 +1,138 @@
+<div class="topbar">
+  <h1>Importar planilha</h1>
+</div>
+
+<div class="panel setup-hint">
+  Importa o histórico da sua planilha de gastos (.xlsx) — abas mensais no formato
+  "Fixos", "Cartão de Crédito", "Gastos do Mês" e "Entradas". Rodar de novo com o mesmo
+  arquivo não duplica lançamentos já importados.
+</div>
+
+@if (errorMessage(); as message) {
+  <div class="form-error" role="alert">{{ message }}</div>
+}
+
+@if (!result()) {
+  <div class="panel">
+    <h2>1. Selecionar arquivo</h2>
+    <div class="field">
+      <label for="import-file">Arquivo (.xlsx)</label>
+      <input id="import-file" type="file" accept=".xlsx" (change)="onFileSelected($event)" />
+    </div>
+    <div class="field">
+      <label for="import-year">Ano de referência</label>
+      <input id="import-year" type="number" [value]="year()" (change)="onYearChange($event)" />
+    </div>
+    <button class="btn" [disabled]="!file() || loading()" (click)="analyze()">Analisar planilha</button>
+  </div>
+}
+
+@if (preview(); as data) {
+  <div class="panel">
+    <h2>2. Revisão</h2>
+    <p class="empty">{{ data.rows.length }} lançamento(s) encontrado(s) na planilha.</p>
+
+    @if (accountMappings().length > 0) {
+      <h2>Contas não encontradas</h2>
+      @for (mapping of accountMappings(); track mapping.name; let i = $index) {
+        <div class="inline-form">
+          <strong>{{ mapping.name }}</strong>
+          <select [value]="mapping.mode" (change)="updateAccountMapping(i, { mode: $any($event.target).value })">
+            <option value="create">Criar nova conta</option>
+            <option value="existing">Usar conta existente</option>
+          </select>
+          @if (mapping.mode === 'create') {
+            <select [value]="mapping.createType" (change)="updateAccountMapping(i, { createType: $any($event.target).value })">
+              @for (type of accountTypes; track type) {
+                <option [value]="type">{{ type }}</option>
+              }
+            </select>
+          } @else {
+            <select [value]="mapping.existingId" (change)="updateAccountMapping(i, { existingId: $any($event.target).value })">
+              <option value="">Selecione...</option>
+              @for (account of accounts(); track account.id) {
+                <option [value]="account.id">{{ account.name }}</option>
+              }
+            </select>
+          }
+        </div>
+      }
+    }
+
+    @if (categoryMappings().length > 0) {
+      <h2>Categorias não encontradas</h2>
+      @for (mapping of categoryMappings(); track mapping.name; let i = $index) {
+        <div class="inline-form">
+          <strong>{{ mapping.name }}</strong>
+          <select [value]="mapping.mode" (change)="updateCategoryMapping(i, { mode: $any($event.target).value })">
+            <option value="create">Criar nova categoria</option>
+            <option value="existing">Usar categoria existente</option>
+          </select>
+          @if (mapping.mode === 'create') {
+            <select [value]="mapping.createKind" (change)="updateCategoryMapping(i, { createKind: $any($event.target).value })">
+              @for (kind of categoryKinds; track kind) {
+                <option [value]="kind">{{ kind === 'EXPENSE' ? 'Gasto' : 'Entrada' }}</option>
+              }
+            </select>
+          } @else {
+            <select [value]="mapping.existingId" (change)="updateCategoryMapping(i, { existingId: $any($event.target).value })">
+              <option value="">Selecione...</option>
+              @for (category of categories(); track category.id) {
+                <option [value]="category.id">{{ category.name }}</option>
+              }
+            </select>
+          }
+        </div>
+      }
+    }
+
+    <table>
+      <tr>
+        <th>Data</th>
+        <th>Descrição</th>
+        <th>Conta</th>
+        <th>Categoria</th>
+        <th class="amount-col">Valor</th>
+      </tr>
+      @for (row of data.rows; track $index) {
+        <tr>
+          <td>{{ row.date | date: 'dd/MM/yyyy' }}</td>
+          <td>{{ row.description }}</td>
+          <td>{{ row.accountName }}</td>
+          <td>{{ row.categoryName }}</td>
+          <td class="amount-col" [class.pos]="row.type === 'INCOME'">
+            {{ row.type === 'INCOME' ? '+' : '' }}{{ row.amount | currency: 'BRL' }}
+          </td>
+        </tr>
+      }
+    </table>
+
+    <div class="form-actions">
+      <button class="btn" [disabled]="loading()" (click)="confirm()">Confirmar importação</button>
+    </div>
+  </div>
+}
+
+@if (result(); as summary) {
+  <div class="panel">
+    <h2>Importação concluída</h2>
+    <div class="cards">
+      <div class="card">
+        <div class="label">Lançamentos criados</div>
+        <div class="value">{{ summary.transactionsCreated }}</div>
+      </div>
+      <div class="card">
+        <div class="label">Duplicados (pulados)</div>
+        <div class="value">{{ summary.transactionsSkippedAsDuplicate }}</div>
+      </div>
+      <div class="card">
+        <div class="label">Contas criadas</div>
+        <div class="value">{{ summary.accountsCreated }}</div>
+      </div>
+      <div class="card">
+        <div class="label">Categorias criadas</div>
+        <div class="value">{{ summary.categoriesCreated }}</div>
+      </div>
+    </div>
+  </div>
+}
