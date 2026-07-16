@@ -1,11 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { Type } from '@angular/core';
 
-import { Goals } from './goals/goals';
+import { Investments } from './investments/investments';
 
 describe('Páginas placeholder', () => {
   const cases: { component: Type<unknown>; title: string }[] = [
-    { component: Goals, title: 'Metas' }
+    { component: Investments, title: 'Investimentos' }
   ];
 
   for (const { component, title } of cases) {
