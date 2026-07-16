@@ -150,6 +150,16 @@ Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/post
 - Cálculo do acumulado é **composto**: `Π(1 + taxa_i/100) − 1`, não soma simples — cada ponto da série já traz o percentual acumulado até aquele dia.
 - Testes mockam a chamada HTTP: `MockRestServiceServer` no client, `@MockitoBean` de `BacenCdiClient` no teste de integração (sem chamada de rede real no CI).
 
+## Metas Financeiras (sessão #16) — Fase 2 completa
+
+- `/v1/goals` (CRUD: `name`/`targetAmount`/`targetDate` todos editáveis — diferente de Investimento, aqui não há série histórica que uma edição possa corromper); `DELETE` cascata (`ON DELETE CASCADE` em `goal_contributions.goal_id`).
+- `/v1/goals/{id}/contributions`: `GET`/`POST` (`month` + `amount`, várias contribuições no mesmo mês são permitidas e somadas — sem unique constraint, diferente de orçamento)/`DELETE`.
+- `GET /v1/goals` já retorna o relatório embutido (`accumulated`, `progressPercentage`, `requiredMonthlyContribution`) — não há endpoint de relatório separado, já que não existe filtro por mês como em Orçamentos.
+- **Cálculo do aporte necessário** (`RequiredContributionCalculator`, regra 5 do plano): `restante = max(alvo − acumulado, 0)`; se `restante = 0` → `0`; se o mês atual já alcançou/passou o mês alvo → `restante` inteiro (tudo devido agora); senão `restante / mesesRestantes`, **arredondado para cima** (evita subestimar o aporte).
+- Migration **V9** (o `PLANO-SDD.md` original citava V6, já usada pela sessão #10 — Orçamentos).
+- Frontend (`web/src/app/features/goals/`): barra de progresso por meta + "Aporte necessário: R$ X/mês até mmm/aaaa" (protótipo), modais de meta e de aporte (mesmo padrão dos orçamentos/investimentos). Ícone fixo 🎯 por meta (a planilha/protótipo usa emoji livre por meta, não persistido no schema).
+- LGPD (`UserDataService`): metas entram na exportação e na exclusão de conta (depois de investimentos, antes do `refreshTokenRepository`).
+
 ## Auth & Segurança (sessões #2 e #S)
 
 **Modelo de sessão (reescrito na #S):** cookies httpOnly, não JWT no localStorage.

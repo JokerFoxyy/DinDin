@@ -3,6 +3,7 @@ package com.dindin.api.account;
 import com.dindin.api.auth.refresh.RefreshTokenRepository;
 import com.dindin.api.category.CategoryRepository;
 import com.dindin.api.common.error.NotFoundException;
+import com.dindin.api.goal.GoalRepository;
 import com.dindin.api.invoice.CardInvoiceRepository;
 import com.dindin.api.investment.InvestmentRepository;
 import com.dindin.api.recurring.RecurringTransactionRepository;
@@ -32,11 +33,13 @@ public class UserDataService {
 	private final RecurringTransactionRepository recurringRepository;
 	private final RefreshTokenRepository refreshTokenRepository;
 	private final InvestmentRepository investmentRepository;
+	private final GoalRepository goalRepository;
 
 	public UserDataService(UserRepository userRepository, AccountRepository accountRepository,
 			CategoryRepository categoryRepository, TransactionRepository transactionRepository,
 			CardInvoiceRepository cardInvoiceRepository, RecurringTransactionRepository recurringRepository,
-			RefreshTokenRepository refreshTokenRepository, InvestmentRepository investmentRepository) {
+			RefreshTokenRepository refreshTokenRepository, InvestmentRepository investmentRepository,
+			GoalRepository goalRepository) {
 		this.userRepository = userRepository;
 		this.accountRepository = accountRepository;
 		this.categoryRepository = categoryRepository;
@@ -45,6 +48,7 @@ public class UserDataService {
 		this.recurringRepository = recurringRepository;
 		this.refreshTokenRepository = refreshTokenRepository;
 		this.investmentRepository = investmentRepository;
+		this.goalRepository = goalRepository;
 	}
 
 	@Transactional(readOnly = true)
@@ -78,6 +82,9 @@ public class UserDataService {
 		export.put("investments", investmentRepository.findAllByUserIdOrderByCreatedAtAsc(userId).stream()
 				.map(i -> Map.of("id", i.getId(), "name", i.getName(), "class", i.getAssetClass(),
 						"institution", i.getInstitution())).toList());
+		export.put("goals", goalRepository.findAllByUserIdOrderByCreatedAtAsc(userId).stream()
+				.map(g -> Map.of("id", g.getId(), "name", g.getName(), "targetAmount", g.getTargetAmount(),
+						"targetDate", g.getTargetDate().toString())).toList());
 		return export;
 	}
 
@@ -97,6 +104,7 @@ public class UserDataService {
 		categoryRepository.deleteByUserId(userId);
 		accountRepository.deleteByUserId(userId);
 		investmentRepository.deleteByUserId(userId);
+		goalRepository.deleteByUserId(userId);
 		refreshTokenRepository.deleteByUserId(userId);
 		userRepository.deleteById(userId);
 	}
