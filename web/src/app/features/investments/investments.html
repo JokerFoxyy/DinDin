@@ -1,0 +1,201 @@
+<div class="topbar">
+  <h1>Investimentos</h1>
+  <div class="topbar-actions">
+    <button class="btn-ghost" type="button" (click)="openCreateInvestment()">+ Novo investimento</button>
+    <button class="btn" type="button" (click)="openCreateEntry()" [disabled]="investments().length === 0">
+      + Novo lançamento
+    </button>
+  </div>
+</div>
+
+@if (errorMessage(); as message) {
+  <div class="form-error" role="alert">{{ message }}</div>
+}
+
+<div class="inv-cards">
+  <div class="card">
+    <div class="label">Patrimônio total</div>
+    <div class="value">{{ totalBalance() | currency: 'BRL' }}</div>
+    @if (totalReturnPercentage(); as pct) {
+      <div class="sub" [class.pos]="pct >= 0" [class.neg]="pct < 0">
+        {{ pct >= 0 ? '▲' : '▼' }} {{ pct }}% no último período
+      </div>
+    }
+  </div>
+  @for (assetClass of assetClasses; track assetClass) {
+    <div class="card">
+      <div class="label">{{ classLabels[assetClass] }}</div>
+      <div class="value">{{ classPerformance(assetClass).totalBalance | currency: 'BRL' }}</div>
+      @if (classPerformance(assetClass).lastPeriodReturnPercentage; as pct) {
+        <div class="sub" [class.pos]="pct >= 0" [class.neg]="pct < 0">
+          {{ pct >= 0 ? '▲' : '▼' }} {{ pct }}% no último período
+        </div>
+      } @else {
+        <div class="sub">Sem atualização de saldo ainda</div>
+      }
+    </div>
+  }
+</div>
+
+<div class="grid2">
+  <div class="panel">
+    <h2>Evolução do patrimônio × CDI</h2>
+    @if (!hasChartData()) {
+      <p class="empty">Registre lançamentos para ver o gráfico.</p>
+    } @else {
+      <div class="chart-box"><canvas #chartCanvas></canvas></div>
+    }
+  </div>
+  <div class="panel">
+    <h2>Investimentos</h2>
+    @if (investments().length === 0) {
+      <p class="empty">Nenhum investimento cadastrado ainda.</p>
+    } @else {
+      <table>
+        <tr>
+          <th>Nome</th>
+          <th>Classe</th>
+          <th class="amount-col">Saldo</th>
+          <th></th>
+        </tr>
+        @for (item of report()?.investments ?? []; track item.id) {
+          <tr>
+            <td>{{ item.name }}<div class="sub-text">{{ item.institution }}</div></td>
+            <td>{{ classLabels[item.assetClass] }}</td>
+            <td class="amount-col">
+              {{ item.currentBalance | currency: 'BRL' }}
+              @if (item.lastPeriodReturnPercentage; as pct) {
+                <div class="pct" [class.pos]="pct >= 0" [class.neg]="pct < 0">{{ pct }}%</div>
+              }
+            </td>
+            <td class="row-actions">
+              <button type="button" class="link" (click)="openEditInvestment({
+                id: item.id, name: item.name, assetClass: item.assetClass, institution: item.institution
+              })">Editar</button>
+              <button type="button" class="link danger" (click)="removeInvestment({
+                id: item.id, name: item.name, assetClass: item.assetClass, institution: item.institution
+              })">Excluir</button>
+            </td>
+          </tr>
+        }
+      </table>
+    }
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Últimos lançamentos</h2>
+  @if (recentEntries().length === 0) {
+    <p class="empty">Nenhum lançamento registrado ainda.</p>
+  } @else {
+    <table>
+      <tr>
+        <th>Data</th>
+        <th>Ativo</th>
+        <th>Tipo</th>
+        <th class="amount-col">Valor</th>
+        <th></th>
+      </tr>
+      @for (row of recentEntries(); track row.entry.id) {
+        <tr>
+          <td>{{ row.entry.date | date: 'dd/MM/yyyy' }}</td>
+          <td>{{ row.investmentName }}</td>
+          <td>
+            <span class="tag" [class.tag-green]="row.entry.type !== 'RESGATE'" [class.tag-red]="row.entry.type === 'RESGATE'">
+              {{ entryTypeLabels[row.entry.type] }}
+            </span>
+          </td>
+          <td class="amount-col">{{ row.entry.amount | currency: 'BRL' }}</td>
+          <td class="row-actions">
+            <button type="button" class="link danger" (click)="removeEntry(row)">Excluir</button>
+          </td>
+        </tr>
+      }
+    </table>
+  }
+</div>
+
+@if (investmentModalOpen()) {
+  <div class="modal-backdrop" (click)="closeInvestmentModal()">
+    <div class="modal panel" (click)="$event.stopPropagation()">
+      <h2>{{ editingInvestment() ? 'Editar investimento' : 'Novo investimento' }}</h2>
+      <form [formGroup]="investmentForm" (ngSubmit)="submitInvestment()">
+        <div class="field">
+          <label for="i-name">Nome</label>
+          <input id="i-name" type="text" formControlName="name" />
+          @if (investmentForm.controls.name.touched && investmentForm.controls.name.invalid) {
+            <div class="error">Informe um nome</div>
+          }
+        </div>
+        <div class="field">
+          <label for="i-class">Classe</label>
+          <select id="i-class" formControlName="assetClass" [disabled]="!!editingInvestment()">
+            @for (assetClass of assetClasses; track assetClass) {
+              <option [value]="assetClass">{{ classLabels[assetClass] }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="i-institution">Instituição</label>
+          <input id="i-institution" type="text" formControlName="institution" />
+          @if (investmentForm.controls.institution.touched && investmentForm.controls.institution.invalid) {
+            <div class="error">Informe a instituição</div>
+          }
+        </div>
+        <div class="form-actions">
+          <button class="btn" type="submit">{{ editingInvestment() ? 'Salvar' : 'Criar' }}</button>
+          <button class="btn-ghost" type="button" (click)="closeInvestmentModal()">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (entryModalOpen()) {
+  <div class="modal-backdrop" (click)="closeEntryModal()">
+    <div class="modal panel" (click)="$event.stopPropagation()">
+      <h2>Novo lançamento</h2>
+      <form [formGroup]="entryForm" (ngSubmit)="submitEntry()">
+        <div class="field">
+          <label for="e-investment">Investimento</label>
+          <select id="e-investment" formControlName="investmentId">
+            @for (investment of investments(); track investment.id) {
+              <option [value]="investment.id">{{ investment.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="e-type">Tipo</label>
+          <select id="e-type" formControlName="type">
+            <option value="APORTE">Aporte</option>
+            <option value="RESGATE">Resgate</option>
+            <option value="ATUALIZACAO_SALDO">Atualização de saldo</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="e-date">Data</label>
+          <input id="e-date" type="date" formControlName="date" />
+        </div>
+        <div class="field">
+          <label for="e-amount">
+            {{ entryForm.controls.type.value === 'ATUALIZACAO_SALDO' ? 'Valor (opcional)' : 'Valor (R$)' }}
+          </label>
+          <input id="e-amount" type="number" step="0.01" min="0" formControlName="amount" />
+          @if (entryForm.controls.amount.touched && entryForm.controls.amount.invalid) {
+            <div class="error">Informe um valor válido</div>
+          }
+        </div>
+        @if (entryForm.controls.type.value === 'ATUALIZACAO_SALDO') {
+          <div class="field">
+            <label for="e-balance">Saldo após a atualização (R$)</label>
+            <input id="e-balance" type="number" step="0.01" min="0" formControlName="balanceAfter" />
+          </div>
+        }
+        <div class="form-actions">
+          <button class="btn" type="submit">Registrar</button>
+          <button class="btn-ghost" type="button" (click)="closeEntryModal()">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
