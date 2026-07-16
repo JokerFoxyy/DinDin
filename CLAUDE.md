@@ -134,7 +134,13 @@ Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/post
 - `/v1/investments/report`: saldo atual + rentabilidade do último período por investimento e agregado por classe (`InvestmentReturnCalculator`).
 - **Cálculo (TWR simplificado)**: percorre as entries em ordem de data; `APORTE`/`RESGATE` somam/subtraem do saldo corrente; `ATUALIZACAO_SALDO` **substitui** o saldo pelo `balanceAfter` informado. Entre duas atualizações consecutivas: `fluxoLíquido = Σaportes − Σresgates` no período; `rendimento = saldoAtual − saldoAnterior − fluxoLíquido`; `percentual = rendimento / saldoAnterior × 100` (nulo com menos de duas atualizações). Agregação por classe roda o mesmo cálculo tratando todas as entries dos investimentos da classe como uma única linha do tempo.
 - Migration **V7**. LGPD (`UserDataService`): investimentos entram na exportação e na exclusão de conta (antes do `refreshTokenRepository`).
-- Frontend fica para a sessão #15 (Fase 2).
+
+## Investimentos (sessão #15) — frontend
+
+- `web/src/app/features/investments/`: cards de patrimônio (total + 3 classes fixas, mesmo sem investimento cadastrado), lista de investimentos com rentabilidade do último período, gráfico "Evolução do patrimônio × CDI", tabela de últimos lançamentos e CRUD (dois modais: investimento e lançamento — mesmo padrão dos orçamentos, sessão #10).
+- **Gráfico calculado no cliente**: a API não expõe uma série histórica pronta do patrimônio total (só saldo atual + rentabilidade do último período). `investments.utils.ts` reimplementa a máquina de estados do `InvestmentReturnCalculator` (`buildBalanceTimeline`) a partir de `GET /v1/investments/{id}/entries` de cada investimento, soma as linhas do tempo (`sumTimelines`, forward-fill) e alinha com o CDI acumulado (`alignSeries`, também forward-fill) num eixo `category` só de strings (sem adapter de tempo do Chart.js).
+- Dois eixos Y no Chart.js: patrimônio em R$ (esquerda) × CDI acumulado em % (direita) — grandezas diferentes, não dá pra normalizar num único eixo sem base arbitrária.
+- Metas de patrimônio (painel do protótipo `prototipo-dashboard.html`) ficam fora de escopo — é a sessão #16.
 
 ## Integração CDI (sessão #14) — backend
 
