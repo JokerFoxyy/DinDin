@@ -187,3 +187,7 @@ Remote: `https://github.com/JokerFoxyy/DinDin.git`. Mesmo fluxo do ContratoIA:
 4. `develop → main` só via PR de release (criado automaticamente pelo `auto-pr.yml` no push da develop).
 
 CI (`.github/workflows/`): `ci-api.yml` (mvnw verify com Testcontainers + JaCoCo 90%; imagem Docker → GHCR na main) e `ci-web.yml` (lint, build:prod, test:ci com thresholds) usam **filtros de path** — mudança só em `api/` não roda CI do front e vice-versa; ao editar um workflow, o próprio arquivo está nos paths. `security.yml`: CodeQL (Java e TS), Trivy fs (+ imagem na main), Dependency Review em PRs, cron semanal.
+
+**Ruleset de `develop`/`main`**: 1 aprovação obrigatória + status checks (`build-and-test`, `CodeQL Analysis`). `dismiss_stale_reviews_on_push: false` (desativado 2026-07-16) — aprovação não é descartada por commits novos no PR, já que é sempre o mesmo revisor (o usuário).
+
+`feature-pr.yml`/`auto-pr.yml` (bots que criam os PRs) usam **`secrets.RELEASE_PAT`** (PAT fine-grained do usuário, escopo Pull requests + Contents no repo) em vez do `GITHUB_TOKEN` padrão nos passos `gh pr create`/`gh pr comment`. Motivo: eventos disparados pelo `GITHUB_TOKEN` não acionam outros workflows (regra anti-recursão do GitHub) — o `pull_request: opened` criado por esses bots nunca rodava `ci-api.yml`/`ci-web.yml`/`security.yml` sozinho, precisava de `gh run rerun` manual (aparecia como "action_required"). Com o PAT, o evento é atribuído a um usuário real e o CI dispara normalmente.

@@ -1,5 +1,9 @@
 name: Auto PR - feature/* → develop
 
+# Usa um PAT (secrets.RELEASE_PAT) em vez do GITHUB_TOKEN padrão para criar o PR: eventos
+# disparados pelo GITHUB_TOKEN não acionam outros workflows (regra anti-recursão do GitHub),
+# então o `pull_request: opened` criado por esta Action nunca rodava o CI sozinho — precisava
+# de `gh run rerun` manual. Com um PAT de usuário real, o evento dispara normalmente.
 on:
   push:
     branches: ['feature/**']
@@ -30,7 +34,7 @@ jobs:
       - name: Check for existing PR
         id: check_pr
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
         run: |
           EXISTING_PR=$(gh pr list --base develop --head "${{ steps.branch.outputs.name }}" --state open --json number --jq '.[0].number')
           echo "existing_pr=$EXISTING_PR" >> $GITHUB_OUTPUT
@@ -38,7 +42,7 @@ jobs:
       - name: Create PR feature → develop
         if: steps.check_pr.outputs.existing_pr == ''
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
         run: |
           COMMITS=$(git log origin/develop..HEAD --oneline --no-merges | head -20)
 
@@ -69,7 +73,7 @@ jobs:
       - name: Update existing PR
         if: steps.check_pr.outputs.existing_pr != ''
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
         run: |
           COMMITS=$(git log origin/develop..HEAD --oneline --no-merges | head -20)
 
