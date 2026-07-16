@@ -28,3 +28,5 @@ cd api
 Qualidade: cobertura mínima de 90% de linha (JaCoCo, quebra o build no `verify`).
 
 Roadmap e arquitetura: [docs/PLANO-SDD.md](docs/PLANO-SDD.md)
+
+<!-- teste temporário: valida que o PAT dispara CI no PR do bot; branch será deletada -->
