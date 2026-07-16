@@ -69,6 +69,13 @@ public class GlobalExceptionHandler {
 		return ApiError.of(HttpStatus.BAD_REQUEST.value(), ex.getMessage());
 	}
 
+	@ExceptionHandler(ExternalServiceException.class)
+	@ResponseStatus(HttpStatus.BAD_GATEWAY)
+	public ApiError handleExternalService(ExternalServiceException ex) {
+		log.warn("Falha ao chamar serviço externo", ex);
+		return ApiError.of(HttpStatus.BAD_GATEWAY.value(), ex.getMessage());
+	}
+
 	@ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
 	@ResponseStatus(HttpStatus.CONFLICT)
 	public ApiError handleDataIntegrity(org.springframework.dao.DataIntegrityViolationException ex) {

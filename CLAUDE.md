@@ -136,6 +136,14 @@ Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/post
 - Migration **V7**. LGPD (`UserDataService`): investimentos entram na exportação e na exclusão de conta (antes do `refreshTokenRepository`).
 - Frontend fica para a sessão #15 (Fase 2).
 
+## Integração CDI (sessão #14) — backend
+
+- `GET /v1/investments/cdi?from=YYYY-MM-DD&to=YYYY-MM-DD`: série do CDI acumulado (composto) dia a dia, para o frontend (sessão #15) sobrepor à curva de patrimônio. `from`/`to` obrigatórios, sem default.
+- `BacenCdiClient` (`RestClient`) busca a série 12 do SGS/Bacen (`api.bcb.gov.br/dados/serie/bcdata.sgs.12/dados`, sem chave); só retorna dias úteis. Falha (timeout/5xx/parse) vira `ExternalServiceException` → **502**.
+- **Cache local** (`cdi_rates`, migration **V8**): se já existe uma linha com `date = to` (data final, truncada para no máximo ontem — Bacen não tem o dia corrente), assume o intervalo inteiro em cache e não rechama o Bacen; senão busca tudo de novo e grava via `saveAll` (upsert natural pela PK `date`, sem SQL upsert manual).
+- Cálculo do acumulado é **composto**: `Π(1 + taxa_i/100) − 1`, não soma simples — cada ponto da série já traz o percentual acumulado até aquele dia.
+- Testes mockam a chamada HTTP: `MockRestServiceServer` no client, `@MockitoBean` de `BacenCdiClient` no teste de integração (sem chamada de rede real no CI).
+
 ## Auth & Segurança (sessões #2 e #S)
 
 **Modelo de sessão (reescrito na #S):** cookies httpOnly, não JWT no localStorage.
