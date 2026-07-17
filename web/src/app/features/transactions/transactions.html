@@ -61,6 +61,9 @@
           <td>{{ transaction.date | date: 'dd/MM' }}</td>
           <td>
             {{ transaction.description }}
+            @if (transaction.installmentCount) {
+              <span class="tag-chip installment-chip">{{ transaction.installmentNumber }}/{{ transaction.installmentCount }}</span>
+            }
             @if (transaction.tags.length > 0) {
               <div class="tag-list">
                 @for (tag of transaction.tags; track tag) {
@@ -91,6 +94,11 @@
               <button type="button" class="link" (click)="openEdit(transaction)">Editar</button>
             }
             <button type="button" class="link danger" (click)="remove(transaction)">Excluir</button>
+            @if (transaction.installmentCount) {
+              <button type="button" class="link danger" (click)="remove(transaction, 'group')">
+                Excluir esta e as próximas
+              </button>
+            }
           </td>
         </tr>
       }
@@ -163,6 +171,15 @@
           <label for="t-tags">Tags (separadas por vírgula)</label>
           <input id="t-tags" type="text" formControlName="tags" placeholder="Ex.: viagem, trabalho" />
         </div>
+        @if (!editing() && form.controls.type.value === 'EXPENSE') {
+          <div class="field">
+            <label for="t-installments">Parcelas</label>
+            <input id="t-installments" type="number" min="1" max="60" formControlName="installments" />
+            @if (installmentsPreview(); as preview) {
+              <div class="installment-preview">{{ preview }}</div>
+            }
+          </div>
+        }
         <div class="form-actions">
           <button class="btn" type="submit">{{ editing() ? 'Salvar' : 'Lançar' }}</button>
           <button class="btn-ghost" type="button" (click)="closeModal()">Cancelar</button>

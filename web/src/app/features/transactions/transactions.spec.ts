@@ -25,11 +25,15 @@ describe('Transactions', () => {
   const padaria: Transaction = {
     id: 't1', description: 'Padaria', amount: 31.73, date: '2026-07-09', type: 'EXPENSE',
     accountId: 'a1', accountName: 'Uniclass', categoryId: 'c1', categoryName: 'Mercado',
-    categoryIcon: '🛒', categoryColor: '#3fb950', invoiceMonth: null, tags: ['viagem', 'trabalho']
+    categoryIcon: '🛒', categoryColor: '#3fb950', invoiceMonth: null, tags: ['viagem', 'trabalho'],
+    installmentNumber: null, installmentCount: null
   };
   const cartao: Transaction = {
     ...padaria, id: 't2', description: 'Streaming', accountId: 'a2', accountName: 'Nubank',
     invoiceMonth: '2026-08-01'
+  };
+  const parcela: Transaction = {
+    ...padaria, id: 't3', description: 'Notebook', installmentNumber: 2, installmentCount: 6
   };
 
   function pageOf(items: Transaction[], totalPages = 1): PageResponse<Transaction> {
@@ -166,8 +170,16 @@ describe('Transactions', () => {
 
     component.remove(padaria);
 
-    expect(transactionService.delete).toHaveBeenCalledWith('t1');
+    expect(transactionService.delete).toHaveBeenCalledWith('t1', undefined);
     expect(transactionService.list).toHaveBeenCalledTimes(2);
+  });
+
+  it('should delete the whole future group when scope is group', () => {
+    transactionService.delete.and.returnValue(of(void 0));
+
+    component.remove(parcela, 'group');
+
+    expect(transactionService.delete).toHaveBeenCalledWith('t3', 'group');
   });
 
   it('should reload from page zero when month changes', () => {
@@ -200,6 +212,63 @@ describe('Transactions', () => {
         jasmine.objectContaining({ q: 'padaria' }), 0);
       done();
     }, 350);
+  });
+
+  it('should render the installment badge when the transaction is part of a group', () => {
+    transactionService.list.and.returnValue(of(pageOf([parcela])));
+    component['load']();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.installment-chip').textContent).toContain('2/6');
+  });
+
+  it('should not send installments when creating a single (non-parceled) transaction', () => {
+    transactionService.create.and.returnValue(of(padaria));
+    component.openCreate();
+    component.form.patchValue({ description: 'Padaria', amount: 31.73, installments: 1 });
+
+    component.submit();
+
+    const payload = transactionService.create.calls.mostRecent().args[0];
+    expect(payload.installments).toBeUndefined();
+  });
+
+  it('should send installments when creating a parceled transaction', () => {
+    transactionService.create.and.returnValue(of(padaria));
+    component.openCreate();
+    component.form.patchValue({ description: 'Notebook', amount: 500, installments: 6 });
+
+    component.submit();
+
+    expect(transactionService.create).toHaveBeenCalledWith(
+      jasmine.objectContaining({ installments: 6 }));
+  });
+
+  it('should not send installments when editing, even if the field has a value greater than one', () => {
+    transactionService.update.and.returnValue(of(padaria));
+    component.openEdit(padaria);
+    component.form.patchValue({ installments: 6 });
+
+    component.submit();
+
+    const payload = transactionService.update.calls.mostRecent().args[1];
+    expect(payload.installments).toBeUndefined();
+  });
+
+  it('should show the installments preview only when creating with more than one installment', () => {
+    component.openCreate();
+    component.form.patchValue({ amount: 100, installments: 3 });
+    expect(component.installmentsPreview()).toContain('3x de');
+
+    component.form.patchValue({ installments: 1 });
+    expect(component.installmentsPreview()).toBeNull();
+  });
+
+  it('should not show the installments preview when editing', () => {
+    component.openEdit(padaria);
+    component.form.patchValue({ amount: 100, installments: 3 });
+
+    expect(component.installmentsPreview()).toBeNull();
   });
 
   it('should show backend message when save fails', () => {

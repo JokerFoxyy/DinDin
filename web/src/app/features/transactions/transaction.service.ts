@@ -41,7 +41,8 @@ export class TransactionService {
     return this.http.put<Transaction>(`${API}/${id}`, payload);
   }
 
-  delete(id: string): Observable<void> {
-    return this.http.delete<void>(`${API}/${id}`);
+  delete(id: string, scope?: 'group'): Observable<void> {
+    const params = scope ? new HttpParams().set('scope', scope) : undefined;
+    return this.http.delete<void>(`${API}/${id}`, { params });
   }
 }

@@ -62,8 +62,9 @@ public class TransactionController {
 
 	@DeleteMapping("/{id}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void delete(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id) {
-		transactionService.delete(user.id(), id);
+	public void delete(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id,
+			@RequestParam(required = false) String scope) {
+		transactionService.delete(user.id(), id, scope);
 	}
 
 	@PutMapping("/{id}/paid")

@@ -22,6 +22,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID>,
 
 	Optional<Transaction> findByRecurringIdAndDateBetween(UUID recurringId, LocalDate start, LocalDate end);
 
+	List<Transaction> findAllByUserIdAndInstallmentGroupIdAndDateGreaterThanEqual(UUID userId,
+			UUID installmentGroupId, LocalDate fromDate);
+
 	boolean existsByUserIdAndAccountIdAndDescriptionAndAmountAndDateAndType(UUID userId, UUID accountId,
 			String description, BigDecimal amount, LocalDate date, TransactionType type);
 

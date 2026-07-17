@@ -57,7 +57,8 @@ export class Transactions implements OnInit {
     type: ['EXPENSE' as TransactionType, Validators.required],
     accountId: ['', Validators.required],
     categoryId: ['', Validators.required],
-    tags: ['']
+    tags: [''],
+    installments: [1, [Validators.required, Validators.min(1), Validators.max(60)]]
   });
 
   private searchDebounce?: ReturnType<typeof setTimeout>;
@@ -117,7 +118,8 @@ export class Transactions implements OnInit {
       type: 'EXPENSE',
       accountId,
       categoryId: '',
-      tags: ''
+      tags: '',
+      installments: 1
     });
     this.onTypeChange();
     this.modalOpen.set(true);
@@ -136,7 +138,8 @@ export class Transactions implements OnInit {
       type: transaction.type,
       accountId: transaction.accountId,
       categoryId: transaction.categoryId ?? '',
-      tags: transaction.tags.join(', ')
+      tags: transaction.tags.join(', '),
+      installments: 1
     });
     this.modalOpen.set(true);
   }
@@ -152,6 +155,7 @@ export class Transactions implements OnInit {
       return;
     }
     const raw = this.form.getRawValue();
+    const editing = this.editing();
     const payload = {
       description: raw.description,
       amount: raw.amount as number,
@@ -159,9 +163,9 @@ export class Transactions implements OnInit {
       type: raw.type,
       accountId: raw.accountId,
       categoryId: raw.categoryId,
-      tags: raw.tags.split(',').map((tag) => tag.trim()).filter((tag) => tag.length > 0)
+      tags: raw.tags.split(',').map((tag) => tag.trim()).filter((tag) => tag.length > 0),
+      ...(!editing && raw.installments > 1 ? { installments: raw.installments } : {})
     };
-    const editing = this.editing();
     const request$ = editing
       ? this.transactionService.update(editing.id, payload)
       : this.transactionService.create(payload);
@@ -176,11 +180,20 @@ export class Transactions implements OnInit {
     });
   }
 
-  remove(transaction: Transaction): void {
-    this.transactionService.delete(transaction.id).subscribe({
+  remove(transaction: Transaction, scope?: 'group'): void {
+    this.transactionService.delete(transaction.id, scope).subscribe({
       next: () => this.load(),
       error: () => this.errorMessage.set('Erro ao excluir o lançamento')
     });
+  }
+
+  /** Preview mostrado abaixo do campo de parcelas no formulário de criação. */
+  installmentsPreview(): string | null {
+    const raw = this.form.getRawValue();
+    if (this.editing() || raw.installments <= 1 || !raw.amount) {
+      return null;
+    }
+    return `${raw.installments}x de ${formatCurrency(raw.amount)}`;
   }
 
   private load(): void {
@@ -208,4 +221,8 @@ function currentMonth(): string {
 function todayIso(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 }

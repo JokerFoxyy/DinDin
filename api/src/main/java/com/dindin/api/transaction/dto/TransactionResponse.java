@@ -25,7 +25,9 @@ public record TransactionResponse(
 		LocalDate invoiceMonth,
 		boolean paid,
 		UUID recurringId,
-		List<String> tags) {
+		List<String> tags,
+		Integer installmentNumber,
+		Integer installmentCount) {
 
 	public static TransactionResponse from(Transaction transaction, Account account,
 			Category category, LocalDate invoiceMonth) {
@@ -44,7 +46,9 @@ public record TransactionResponse(
 				invoiceMonth,
 				transaction.isPaid(),
 				transaction.getRecurringId(),
-				transaction.getTags().stream().sorted().toList());
+				transaction.getTags().stream().sorted().toList(),
+				transaction.getInstallmentNumber(),
+				transaction.getInstallmentCount());
 	}
 
 }
