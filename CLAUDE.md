@@ -160,6 +160,14 @@ Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/post
 - Frontend (`web/src/app/features/goals/`): barra de progresso por meta + "Aporte necessário: R$ X/mês até mmm/aaaa" (protótipo), modais de meta e de aporte (mesmo padrão dos orçamentos/investimentos). Ícone fixo 🎯 por meta (a planilha/protótipo usa emoji livre por meta, não persistido no schema).
 - LGPD (`UserDataService`): metas entram na exportação e na exclusão de conta (depois de investimentos, antes do `refreshTokenRepository`).
 
+## Alertas de Orçamento + Busca e Tags (sessão #17) — Fase 3
+
+- **Tags livres**: `Transaction.tags` é um `@ElementCollection<Set<String>>` (tabela `transaction_tags`, migration **V10**) — não uma coluna `text[]` nativa — porque `CriteriaBuilder.isMember` só compõe com a `Specification` dinâmica existente (`TransactionSpecifications`) quando é uma collection JPA de verdade. Tags são normalizadas (trim + lowercase) e deduplicadas (`Set`) no `TransactionService` antes de salvar.
+- `GET /v1/transactions` ganhou `q` (busca `LIKE` case-insensitive na descrição) e `tag` (uma tag por vez, via `cb.isMember`) — combináveis com os filtros já existentes (mês/conta/categoria/tipo).
+- `GET /v1/budgets/alerts?month=` (default mês atual): subconjunto de `BudgetService.report()` filtrado a `over=true` — reaproveita o cálculo da sessão #10 em vez de duplicar regra.
+- Frontend: campo de busca + filtro de tag na tela de Transações (debounce de 300ms via `onSearchInput()`, evita 1 request por tecla); campo de tags (string separada por vírgula, convertida em array no submit) no formulário de lançamento; chips `#tag` na listagem. `Shell` busca `/v1/budgets/alerts` uma vez no load e mostra um badge numérico vermelho no item "Orçamentos" do menu — não é reativo a mudanças feitas em outras páginas na mesma sessão de navegação (só atualiza em um novo load do shell).
+- Removidos nesta sessão (código morto após as sessões #15/#16 substituírem os últimos placeholders): `web/src/app/features/pages.spec.ts` e `web/src/app/shared/page-placeholder.ts`.
+
 ## Auth & Segurança (sessões #2 e #S)
 
 **Modelo de sessão (reescrito na #S):** cookies httpOnly, não JWT no localStorage.

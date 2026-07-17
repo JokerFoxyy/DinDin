@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public record TransactionRequest(
@@ -17,5 +18,6 @@ public record TransactionRequest(
 		@NotNull LocalDate date,
 		@NotNull TransactionType type,
 		@NotNull UUID accountId,
-		@NotNull UUID categoryId) {
+		@NotNull UUID categoryId,
+		List<@Size(max = 40) String> tags) {
 }

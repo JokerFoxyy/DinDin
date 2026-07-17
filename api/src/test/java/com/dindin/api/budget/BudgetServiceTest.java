@@ -104,6 +104,28 @@ class BudgetServiceTest {
 	}
 
 	@Test
+	void shouldReturnOnlyOverBudgetCategories_inAlerts() {
+		Budget okBudget = new Budget(userId, UUID.randomUUID(), month.atDay(1), new BigDecimal("500.00"));
+		ReflectionTestUtils.setField(okBudget, "id", UUID.randomUUID());
+		Category okCategory = new Category(userId, "Lazer", "🎮", "#a371f7", CategoryKind.EXPENSE);
+		ReflectionTestUtils.setField(okCategory, "id", okBudget.getCategoryId());
+
+		when(budgetRepository.findAllByUserIdAndMonthOrderByCreatedAtAsc(userId, month.atDay(1)))
+				.thenReturn(List.of(budget, okBudget));
+		when(categoryRepository.findAllById(List.of(categoryId, okBudget.getCategoryId())))
+				.thenReturn(List.of(expenseCategory, okCategory));
+		when(transactionRepository.sumExpensesByCategory(userId, List.of(categoryId, okBudget.getCategoryId()),
+				month.atDay(1), month.atEndOfMonth())).thenReturn(List.of(
+						new CategorySpent(categoryId, new BigDecimal("600.00")),
+						new CategorySpent(okBudget.getCategoryId(), new BigDecimal("100.00"))));
+
+		List<BudgetReportResponse> alerts = service.alerts(userId, month);
+
+		assertThat(alerts).hasSize(1);
+		assertThat(alerts.getFirst().categoryId()).isEqualTo(categoryId);
+	}
+
+	@Test
 	void shouldCreateBudget_whenCategoryIsExpenseAndNotDuplicated() {
 		when(categoryRepository.findByIdAndUserId(categoryId, userId)).thenReturn(Optional.of(expenseCategory));
 		when(budgetRepository.existsByUserIdAndCategoryIdAndMonth(userId, categoryId, month.atDay(1))).thenReturn(false);

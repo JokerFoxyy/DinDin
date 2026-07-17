@@ -144,8 +144,8 @@ Pré-req: #13.
 
 ### Fase 3 — Qualidade de vida
 
-**#17 — Alertas de Orçamento + Busca e Tags**
-Tasks: (1) alerta ao estourar orçamento (badge/notificação no app); (2) busca full-text e filtros avançados; (3) tags livres em transações; (4) verificação.
+**#17 — Alertas de Orçamento + Busca e Tags** ✅ CONCLUÍDA (2026-07-16 — SDD: `docs/session-17-alertas-busca-tags/SDD.md`). **Primeira sessão da Fase 3.**
+Tasks: (1) alerta ao estourar orçamento (badge/notificação no app); (2) busca full-text e filtros avançados; (3) tags livres em transações; (4) verificação. Migration **V10** (`transaction_tags`). 197 testes web (cobertura ≥90/80/90/90); verificado end-to-end no browser.
 Pré-req: #11.
 
 **#18 — Parcelamentos**

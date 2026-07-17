@@ -24,6 +24,12 @@ export class TransactionService {
     if (filters.type) {
       params = params.set('type', filters.type);
     }
+    if (filters.q) {
+      params = params.set('q', filters.q);
+    }
+    if (filters.tag) {
+      params = params.set('tag', filters.tag);
+    }
     return this.http.get<PageResponse<Transaction>>(API, { params });
   }
 

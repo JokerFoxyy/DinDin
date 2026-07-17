@@ -101,6 +101,18 @@ class BudgetFlowIntegrationTest {
 	}
 
 	@Test
+	void shouldReturnOnlyOverBudgetCategories_inAlertsEndpoint() throws Exception {
+		post("/v1/budgets", Map.of("categoryId", expenseCategoryId, "month", "2026-07", "amount", "100.00"));
+		post("/v1/transactions", Map.of("description", "Compra grande", "amount", "150.00", "date", "2026-07-05",
+				"type", "EXPENSE", "accountId", checkingId, "categoryId", expenseCategoryId));
+
+		JsonNode alerts = objectMapper.readTree(get("/v1/budgets/alerts?month=2026-07").getBody());
+
+		assertThat(alerts).hasSize(1);
+		assertThat(alerts.get(0).get("over").asBoolean()).isTrue();
+	}
+
+	@Test
 	void shouldReturn400_whenCategoryIsIncome() {
 		ResponseEntity<String> response = post("/v1/budgets",
 				Map.of("categoryId", incomeCategoryId, "month", "2026-07", "amount", "500.00"));
