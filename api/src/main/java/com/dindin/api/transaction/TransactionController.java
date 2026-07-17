@@ -40,9 +40,11 @@ public class TransactionController {
 			@RequestParam(required = false) UUID accountId,
 			@RequestParam(required = false) UUID categoryId,
 			@RequestParam(required = false) TransactionType type,
+			@RequestParam(required = false) String q,
+			@RequestParam(required = false) String tag,
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "50") int size) {
-		return transactionService.search(user.id(), month, accountId, categoryId, type, page, size);
+		return transactionService.search(user.id(), month, accountId, categoryId, type, q, tag, page, size);
 	}
 
 	@PostMapping

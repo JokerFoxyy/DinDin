@@ -7,6 +7,7 @@ import com.dindin.api.transaction.TransactionType;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public record TransactionResponse(
@@ -23,7 +24,8 @@ public record TransactionResponse(
 		String categoryColor,
 		LocalDate invoiceMonth,
 		boolean paid,
-		UUID recurringId) {
+		UUID recurringId,
+		List<String> tags) {
 
 	public static TransactionResponse from(Transaction transaction, Account account,
 			Category category, LocalDate invoiceMonth) {
@@ -41,7 +43,8 @@ public record TransactionResponse(
 				category != null ? category.getColor() : null,
 				invoiceMonth,
 				transaction.isPaid(),
-				transaction.getRecurringId());
+				transaction.getRecurringId(),
+				transaction.getTags().stream().sorted().toList());
 	}
 
 }

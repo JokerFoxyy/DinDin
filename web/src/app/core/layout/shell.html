@@ -5,6 +5,9 @@
       @for (item of navItems; track item.path) {
         <a class="nav-item" [routerLink]="item.path" routerLinkActive="active">
           <span>{{ item.icon }}</span> {{ item.label }}
+          @if (item.path === '/orcamentos' && budgetAlertCount() > 0) {
+            <span class="alert-badge">{{ budgetAlertCount() }}</span>
+          }
         </a>
       }
     </nav>

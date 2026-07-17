@@ -54,6 +54,12 @@ public class BudgetService {
 				.toList();
 	}
 
+	/** Subconjunto do relatório com apenas as categorias que estouraram o orçamento no mês. */
+	@Transactional(readOnly = true)
+	public List<BudgetReportResponse> alerts(UUID userId, YearMonth month) {
+		return report(userId, month).stream().filter(BudgetReportResponse::over).toList();
+	}
+
 	@Transactional
 	public BudgetReportResponse create(UUID userId, BudgetRequest request) {
 		Category category = validateCategory(userId, request.categoryId());

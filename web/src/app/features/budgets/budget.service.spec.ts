@@ -26,6 +26,12 @@ describe('BudgetService', () => {
     request.flush([]);
   });
 
+  it('should request the alerts endpoint', () => {
+    service.alerts().subscribe((result) => expect(result).toEqual([]));
+
+    httpMock.expectOne({ url: '/api/v1/budgets/alerts', method: 'GET' }).flush([]);
+  });
+
   it('should create, update amount and delete a budget', () => {
     service.create({ categoryId: 'c1', month: '2026-07', amount: 500 }).subscribe();
     const post = httpMock.expectOne('/api/v1/budgets');

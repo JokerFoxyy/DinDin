@@ -25,7 +25,7 @@ describe('Transactions', () => {
   const padaria: Transaction = {
     id: 't1', description: 'Padaria', amount: 31.73, date: '2026-07-09', type: 'EXPENSE',
     accountId: 'a1', accountName: 'Uniclass', categoryId: 'c1', categoryName: 'Mercado',
-    categoryIcon: '🛒', categoryColor: '#3fb950', invoiceMonth: null
+    categoryIcon: '🛒', categoryColor: '#3fb950', invoiceMonth: null, tags: ['viagem', 'trabalho']
   };
   const cartao: Transaction = {
     ...padaria, id: 't2', description: 'Streaming', accountId: 'a2', accountName: 'Nubank',
@@ -67,6 +67,12 @@ describe('Transactions', () => {
     expect(text).toContain('Padaria');
     expect(fixture.nativeElement.querySelector('.tag').textContent).toContain('Mercado');
     expect(fixture.nativeElement.querySelector('.invoice-hint').textContent).toContain('fatura');
+  });
+
+  it('should render the tag chips of a transaction', () => {
+    const chips = fixture.nativeElement.querySelectorAll('.tag-chip');
+    expect(chips.length).toBeGreaterThanOrEqual(2);
+    expect(chips[0].textContent).toContain('viagem');
   });
 
   it('should open create modal with today and first account as defaults', () => {
@@ -132,6 +138,23 @@ describe('Transactions', () => {
       jasmine.objectContaining({ description: 'Padaria Sameiro' }));
   });
 
+  it('should prefill the tags field with a comma-separated list when editing', () => {
+    component.openEdit(padaria);
+
+    expect(component.form.controls.tags.value).toBe('viagem, trabalho');
+  });
+
+  it('should parse the tags field into a trimmed string array on submit', () => {
+    transactionService.create.and.returnValue(of(padaria));
+    component.openCreate();
+    component.form.patchValue({ description: 'Uber', amount: 52.53, tags: ' viagem ,  trabalho,,' });
+
+    component.submit();
+
+    expect(transactionService.create).toHaveBeenCalledWith(
+      jasmine.objectContaining({ tags: ['viagem', 'trabalho'] }));
+  });
+
   it('should not open edit modal for invoice adjustments', () => {
     component.openEdit({ ...padaria, type: 'INVOICE_ADJUSTMENT' });
 
@@ -163,6 +186,20 @@ describe('Transactions', () => {
 
     expect(transactionService.list).toHaveBeenCalledWith(jasmine.any(String),
       jasmine.objectContaining({ accountId: 'a2', type: 'EXPENSE' }), 0);
+  });
+
+  it('should debounce the free-text search before reloading', (done) => {
+    transactionService.list.calls.reset();
+    component.filterForm.patchValue({ q: 'padaria' });
+
+    component.onSearchInput();
+
+    expect(transactionService.list).not.toHaveBeenCalled();
+    setTimeout(() => {
+      expect(transactionService.list).toHaveBeenCalledWith(jasmine.any(String),
+        jasmine.objectContaining({ q: 'padaria' }), 0);
+      done();
+    }, 350);
   });
 
   it('should show backend message when save fails', () => {

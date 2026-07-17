@@ -14,7 +14,7 @@ public final class TransactionSpecifications {
 	}
 
 	public static Specification<Transaction> search(UUID userId, YearMonth month,
-			UUID accountId, UUID categoryId, TransactionType type) {
+			UUID accountId, UUID categoryId, TransactionType type, String q, String tag) {
 		return (root, query, cb) -> {
 			List<Predicate> predicates = new ArrayList<>();
 			predicates.add(cb.equal(root.get("userId"), userId));
@@ -27,6 +27,12 @@ public final class TransactionSpecifications {
 			}
 			if (type != null) {
 				predicates.add(cb.equal(root.get("type"), type));
+			}
+			if (q != null && !q.isBlank()) {
+				predicates.add(cb.like(cb.lower(root.get("description")), "%" + q.trim().toLowerCase() + "%"));
+			}
+			if (tag != null && !tag.isBlank()) {
+				predicates.add(cb.isMember(tag.trim().toLowerCase(), root.get("tags")));
 			}
 			return cb.and(predicates.toArray(Predicate[]::new));
 		};

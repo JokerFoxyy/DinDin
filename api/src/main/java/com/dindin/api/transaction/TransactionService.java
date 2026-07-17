@@ -22,8 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -51,9 +53,9 @@ public class TransactionService {
 
 	@Transactional(readOnly = true)
 	public PageResponse<TransactionResponse> search(UUID userId, YearMonth month, UUID accountId,
-			UUID categoryId, TransactionType type, int page, int size) {
+			UUID categoryId, TransactionType type, String q, String tag, int page, int size) {
 		Page<Transaction> transactions = transactionRepository.findAll(
-				TransactionSpecifications.search(userId, month, accountId, categoryId, type),
+				TransactionSpecifications.search(userId, month, accountId, categoryId, type, q, tag),
 				PageRequest.of(page, Math.min(size, 200), DEFAULT_SORT));
 
 		Map<UUID, Account> accounts = byId(transactions, Transaction::getAccountId, accountRepository::findAllById,
@@ -77,6 +79,7 @@ public class TransactionService {
 		Transaction transaction = new Transaction(userId, refs.account().getId(), refs.category().getId(),
 				invoiceIdFor(refs.account(), request.date()), request.description().trim(),
 				request.amount(), request.date(), request.type());
+		transaction.updateTags(normalizeTags(request.tags()));
 		transactionRepository.save(transaction);
 		return toResponse(transaction, refs);
 	}
@@ -91,7 +94,19 @@ public class TransactionService {
 		transaction.update(refs.account().getId(), refs.category().getId(),
 				invoiceIdFor(refs.account(), request.date()), request.description().trim(),
 				request.amount(), request.date(), request.type());
+		transaction.updateTags(normalizeTags(request.tags()));
 		return toResponse(transaction, refs);
+	}
+
+	private Set<String> normalizeTags(List<String> tags) {
+		if (tags == null) {
+			return Set.of();
+		}
+		return tags.stream()
+				.map(String::trim)
+				.filter(tag -> !tag.isEmpty())
+				.map(String::toLowerCase)
+				.collect(Collectors.toSet());
 	}
 
 	@Transactional

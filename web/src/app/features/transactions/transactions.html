@@ -20,6 +20,8 @@
 
 <div class="panel">
   <form [formGroup]="filterForm" class="filters">
+    <input type="search" formControlName="q" aria-label="Buscar por descrição" placeholder="Buscar..."
+           (input)="onSearchInput()" />
     <select formControlName="accountId" aria-label="Filtrar por conta" (change)="onFiltersChange()">
       <option value="">Todas as contas</option>
       @for (account of accounts(); track account.id) {
@@ -37,6 +39,8 @@
       <option value="EXPENSE">Gastos</option>
       <option value="INCOME">Entradas</option>
     </select>
+    <input type="text" formControlName="tag" aria-label="Filtrar por tag" placeholder="Tag..."
+           (input)="onSearchInput()" />
     <span class="count">{{ totalElements() }} lançamento(s)</span>
   </form>
 
@@ -55,7 +59,16 @@
       @for (transaction of transactions(); track transaction.id) {
         <tr>
           <td>{{ transaction.date | date: 'dd/MM' }}</td>
-          <td>{{ transaction.description }}</td>
+          <td>
+            {{ transaction.description }}
+            @if (transaction.tags.length > 0) {
+              <div class="tag-list">
+                @for (tag of transaction.tags; track tag) {
+                  <span class="tag-chip">#{{ tag }}</span>
+                }
+              </div>
+            }
+          </td>
           <td>
             {{ transaction.accountName }}
             @if (transaction.invoiceMonth) {
@@ -145,6 +158,10 @@
           @if (form.controls.categoryId.touched && form.controls.categoryId.invalid) {
             <div class="error">Escolha uma categoria</div>
           }
+        </div>
+        <div class="field">
+          <label for="t-tags">Tags (separadas por vírgula)</label>
+          <input id="t-tags" type="text" formControlName="tags" placeholder="Ex.: viagem, trabalho" />
         </div>
         <div class="form-actions">
           <button class="btn" type="submit">{{ editing() ? 'Salvar' : 'Lançar' }}</button>

@@ -40,10 +40,19 @@ describe('TransactionService', () => {
     request.flush({ content: [], page: 2, size: 10, totalElements: 0, totalPages: 0 });
   });
 
+  it('should include q and tag params when provided', () => {
+    service.list('2026-07', { q: 'padaria', tag: 'viagem' }).subscribe();
+
+    const request = httpMock.expectOne((r) => r.url === '/api/v1/transactions');
+    expect(request.request.params.get('q')).toBe('padaria');
+    expect(request.request.params.get('tag')).toBe('viagem');
+    request.flush({ content: [], page: 0, size: 50, totalElements: 0, totalPages: 0 });
+  });
+
   it('should create, update and delete transactions', () => {
     const payload = {
       description: 'Padaria', amount: 31.73, date: '2026-07-09',
-      type: 'EXPENSE' as const, accountId: 'a1', categoryId: 'c1'
+      type: 'EXPENSE' as const, accountId: 'a1', categoryId: 'c1', tags: ['viagem']
     };
 
     service.create(payload).subscribe();

@@ -16,6 +16,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -73,6 +74,12 @@ class TransactionFlowIntegrationTest {
 				"type", type, "accountId", accountId, "categoryId", categoryId);
 	}
 
+	private Map<String, Object> transactionWithTags(String description, String amount, String date,
+			String type, String accountId, String categoryId, List<String> tags) {
+		return Map.of("description", description, "amount", amount, "date", date,
+				"type", type, "accountId", accountId, "categoryId", categoryId, "tags", tags);
+	}
+
 	@Test
 	void shouldLinkCardPurchasesToCorrectInvoices_whenDatesCrossClosingDay() throws Exception {
 		// antes do fechamento (dia 28) → fatura de julho; no dia do fechamento → fatura de agosto
@@ -118,6 +125,40 @@ class TransactionFlowIntegrationTest {
 				get("/v1/transactions?month=2026-07&page=0&size=2").getBody());
 		assertThat(paged.get("content").size()).isEqualTo(2);
 		assertThat(paged.get("totalPages").asInt()).isEqualTo(2);
+	}
+
+	@Test
+	void shouldNormalizeAndDedupeTags_whenCreating() throws Exception {
+		ResponseEntity<String> created = post("/v1/transactions",
+				transactionWithTags("Uber", "52.53", "2026-07-09", "EXPENSE", checkingId, expenseCategoryId,
+						List.of(" Viagem ", "viagem", "Trabalho")));
+
+		JsonNode tags = objectMapper.readTree(created.getBody()).get("tags");
+		List<String> tagValues = objectMapper.convertValue(tags, List.class);
+		assertThat(tagValues).containsExactlyInAnyOrder("viagem", "trabalho");
+	}
+
+	@Test
+	void shouldFilterByFreeTextSearch() throws Exception {
+		post("/v1/transactions", transaction("Padaria Sameiro", "31.73", "2026-07-05", "EXPENSE", checkingId, expenseCategoryId));
+		post("/v1/transactions", transaction("Uber centro", "52.53", "2026-07-06", "EXPENSE", checkingId, expenseCategoryId));
+
+		JsonNode result = objectMapper.readTree(get("/v1/transactions?month=2026-07&q=padaria").getBody());
+
+		assertThat(result.get("totalElements").asLong()).isEqualTo(1);
+		assertThat(result.get("content").get(0).get("description").asText()).isEqualTo("Padaria Sameiro");
+	}
+
+	@Test
+	void shouldFilterByTag() throws Exception {
+		post("/v1/transactions", transactionWithTags("Uber centro", "52.53", "2026-07-06", "EXPENSE",
+				checkingId, expenseCategoryId, List.of("viagem")));
+		post("/v1/transactions", transaction("Padaria", "31.73", "2026-07-05", "EXPENSE", checkingId, expenseCategoryId));
+
+		JsonNode result = objectMapper.readTree(get("/v1/transactions?month=2026-07&tag=viagem").getBody());
+
+		assertThat(result.get("totalElements").asLong()).isEqualTo(1);
+		assertThat(result.get("content").get(0).get("description").asText()).isEqualTo("Uber centro");
 	}
 
 	@Test

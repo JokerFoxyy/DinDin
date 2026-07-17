@@ -1,7 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { AuthService } from '../auth/auth.service';
+import { BudgetService } from '../../features/budgets/budget.service';
 
 interface NavItem {
   icon: string;
@@ -17,9 +18,11 @@ interface NavItem {
 })
 export class Shell implements OnInit {
   private readonly authService = inject(AuthService);
+  private readonly budgetService = inject(BudgetService);
   private readonly router = inject(Router);
 
   readonly currentUser = this.authService.currentUser;
+  readonly budgetAlertCount = signal(0);
 
   readonly navItems: NavItem[] = [
     { icon: '📊', label: 'Dashboard', path: '/dashboard' },
@@ -35,6 +38,7 @@ export class Shell implements OnInit {
 
   ngOnInit(): void {
     this.authService.loadCurrentUser().subscribe({
+      next: () => this.budgetService.alerts().subscribe((alerts) => this.budgetAlertCount.set(alerts.length)),
       error: () => {
         this.authService.clearSession();
         this.router.navigate(['/login']);

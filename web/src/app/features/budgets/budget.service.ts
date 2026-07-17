@@ -14,6 +14,10 @@ export class BudgetService {
     return this.http.get<BudgetReport[]>(API, { params: { month } });
   }
 
+  alerts(): Observable<BudgetReport[]> {
+    return this.http.get<BudgetReport[]>(`${API}/alerts`);
+  }
+
   create(payload: BudgetCreatePayload): Observable<BudgetReport> {
     return this.http.post<BudgetReport>(API, payload);
   }

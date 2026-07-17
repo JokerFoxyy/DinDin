@@ -45,7 +45,9 @@ export class Transactions implements OnInit {
   readonly filterForm = this.formBuilder.nonNullable.group({
     accountId: '',
     categoryId: '',
-    type: ''
+    type: '',
+    q: '',
+    tag: ''
   });
 
   readonly form = this.formBuilder.nonNullable.group({
@@ -54,8 +56,11 @@ export class Transactions implements OnInit {
     date: ['', Validators.required],
     type: ['EXPENSE' as TransactionType, Validators.required],
     accountId: ['', Validators.required],
-    categoryId: ['', Validators.required]
+    categoryId: ['', Validators.required],
+    tags: ['']
   });
+
+  private searchDebounce?: ReturnType<typeof setTimeout>;
 
   ngOnInit(): void {
     this.accountService.list().subscribe((accounts) => this.accounts.set(accounts));
@@ -72,6 +77,12 @@ export class Transactions implements OnInit {
   onFiltersChange(): void {
     this.page.set(0);
     this.load();
+  }
+
+  /** Busca de texto livre é debounced pra não disparar uma requisição por tecla digitada. */
+  onSearchInput(): void {
+    clearTimeout(this.searchDebounce);
+    this.searchDebounce = setTimeout(() => this.onFiltersChange(), 300);
   }
 
   goToPage(page: number): void {
@@ -105,7 +116,8 @@ export class Transactions implements OnInit {
       date: todayIso(),
       type: 'EXPENSE',
       accountId,
-      categoryId: ''
+      categoryId: '',
+      tags: ''
     });
     this.onTypeChange();
     this.modalOpen.set(true);
@@ -123,7 +135,8 @@ export class Transactions implements OnInit {
       date: transaction.date,
       type: transaction.type,
       accountId: transaction.accountId,
-      categoryId: transaction.categoryId ?? ''
+      categoryId: transaction.categoryId ?? '',
+      tags: transaction.tags.join(', ')
     });
     this.modalOpen.set(true);
   }
@@ -145,7 +158,8 @@ export class Transactions implements OnInit {
       date: raw.date,
       type: raw.type,
       accountId: raw.accountId,
-      categoryId: raw.categoryId
+      categoryId: raw.categoryId,
+      tags: raw.tags.split(',').map((tag) => tag.trim()).filter((tag) => tag.length > 0)
     };
     const editing = this.editing();
     const request$ = editing
@@ -174,7 +188,9 @@ export class Transactions implements OnInit {
     const filters: TransactionFilters = {
       accountId: raw.accountId || undefined,
       categoryId: raw.categoryId || undefined,
-      type: (raw.type || undefined) as TransactionFilters['type']
+      type: (raw.type || undefined) as TransactionFilters['type'],
+      q: raw.q || undefined,
+      tag: raw.tag || undefined
     };
     this.transactionService.list(this.month(), filters, this.page()).subscribe((result) => {
       this.transactions.set(result.content);
