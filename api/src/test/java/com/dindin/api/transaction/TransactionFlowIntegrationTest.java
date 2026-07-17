@@ -162,6 +162,93 @@ class TransactionFlowIntegrationTest {
 	}
 
 	@Test
+	void shouldCreateInstallmentsOnConsecutiveMonths_linkedToTheirOwnInvoice() throws Exception {
+		ResponseEntity<String> created = post("/v1/transactions", Map.of(
+				"description", "Notebook", "amount", "500.00", "date", "2026-07-09", "type", "EXPENSE",
+				"accountId", cardId, "categoryId", expenseCategoryId, "installments", 3));
+
+		JsonNode first = objectMapper.readTree(created.getBody());
+		assertThat(first.get("installmentNumber").asInt()).isEqualTo(1);
+		assertThat(first.get("installmentCount").asInt()).isEqualTo(3);
+		assertThat(first.get("invoiceMonth").asText()).isEqualTo("2026-07-01");
+
+		JsonNode all = objectMapper.readTree(get("/v1/transactions?month=2026-09").getBody());
+		assertThat(all.get("totalElements").asLong()).isEqualTo(1);
+		JsonNode third = all.get("content").get(0);
+		assertThat(third.get("installmentNumber").asInt()).isEqualTo(3);
+		assertThat(third.get("date").asText()).isEqualTo("2026-09-09");
+		assertThat(third.get("invoiceMonth").asText()).isEqualTo("2026-09-01");
+	}
+
+	@Test
+	void shouldReturn400_whenInstallmentsRequestedForIncome() {
+		ResponseEntity<String> response = post("/v1/transactions", Map.of(
+				"description", "Salário", "amount", "1000.00", "date", "2026-07-09", "type", "INCOME",
+				"accountId", checkingId, "categoryId", incomeCategoryId, "installments", 3));
+
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+	}
+
+	@Test
+	void shouldDeleteOnlyFutureInstallments_whenScopeIsGroup() throws Exception {
+		post("/v1/transactions", Map.of(
+				"description", "Notebook", "amount", "100.00", "date", "2026-07-09", "type", "EXPENSE",
+				"accountId", checkingId, "categoryId", expenseCategoryId, "installments", 4));
+		String secondId = objectMapper.readTree(get("/v1/transactions?month=2026-08").getBody())
+				.get("content").get(0).get("id").asText();
+
+		ResponseEntity<Void> deleted = rest.exchange("/v1/transactions/" + secondId + "?scope=group",
+				HttpMethod.DELETE, new HttpEntity<>(headers), Void.class);
+		assertThat(deleted.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+		assertThat(objectMapper.readTree(get("/v1/transactions?month=2026-07").getBody())
+				.get("totalElements").asLong()).isEqualTo(1);
+		assertThat(objectMapper.readTree(get("/v1/transactions?month=2026-08").getBody())
+				.get("totalElements").asLong()).isEqualTo(0);
+		assertThat(objectMapper.readTree(get("/v1/transactions?month=2026-09").getBody())
+				.get("totalElements").asLong()).isEqualTo(0);
+		assertThat(objectMapper.readTree(get("/v1/transactions?month=2026-10").getBody())
+				.get("totalElements").asLong()).isEqualTo(0);
+	}
+
+	@Test
+	void shouldExportCsv_withOnlyFilteredTransactions() throws Exception {
+		post("/v1/transactions", transaction("Padaria", "31.73", "2026-07-05", "EXPENSE", checkingId, expenseCategoryId));
+		post("/v1/transactions", transaction("Salário", "5000.00", "2026-07-01", "INCOME", checkingId, incomeCategoryId));
+
+		ResponseEntity<byte[]> response = rest.exchange(
+				"/v1/transactions/export?month=2026-07&type=EXPENSE", HttpMethod.GET,
+				new HttpEntity<>(headers), byte[].class);
+
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(response.getHeaders().getContentDisposition().getFilename()).isEqualTo("transacoes-2026-07.csv");
+		String csv = new String(response.getBody(), java.nio.charset.StandardCharsets.UTF_8);
+		assertThat(csv).contains("Padaria");
+		assertThat(csv).doesNotContain("Salário");
+	}
+
+	@Test
+	void shouldExportXlsx_whenFormatIsXlsx() throws Exception {
+		post("/v1/transactions", transaction("Padaria", "31.73", "2026-07-05", "EXPENSE", checkingId, expenseCategoryId));
+
+		ResponseEntity<byte[]> response = rest.exchange(
+				"/v1/transactions/export?month=2026-07&format=xlsx", HttpMethod.GET,
+				new HttpEntity<>(headers), byte[].class);
+
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(response.getHeaders().getContentType().toString())
+				.isEqualTo("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+		assertThat(response.getHeaders().getContentDisposition().getFilename()).isEqualTo("transacoes-2026-07.xlsx");
+		assertThat(response.getBody().length).isGreaterThan(0);
+	}
+
+	@Test
+	void shouldReturn401_whenExportingWithoutAuthentication() {
+		assertThat(rest.getForEntity("/v1/transactions/export?month=2026-07", String.class).getStatusCode())
+				.isEqualTo(HttpStatus.UNAUTHORIZED);
+	}
+
+	@Test
 	void shouldReturn400_whenCategoryKindDoesNotMatchType() {
 		ResponseEntity<String> response = post("/v1/transactions",
 				transaction("Errado", "10.00", "2026-07-09", "EXPENSE", checkingId, incomeCategoryId));

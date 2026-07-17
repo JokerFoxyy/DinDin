@@ -57,7 +57,8 @@ export class Transactions implements OnInit {
     type: ['EXPENSE' as TransactionType, Validators.required],
     accountId: ['', Validators.required],
     categoryId: ['', Validators.required],
-    tags: ['']
+    tags: [''],
+    installments: [1, [Validators.required, Validators.min(1), Validators.max(60)]]
   });
 
   private searchDebounce?: ReturnType<typeof setTimeout>;
@@ -117,7 +118,8 @@ export class Transactions implements OnInit {
       type: 'EXPENSE',
       accountId,
       categoryId: '',
-      tags: ''
+      tags: '',
+      installments: 1
     });
     this.onTypeChange();
     this.modalOpen.set(true);
@@ -136,7 +138,8 @@ export class Transactions implements OnInit {
       type: transaction.type,
       accountId: transaction.accountId,
       categoryId: transaction.categoryId ?? '',
-      tags: transaction.tags.join(', ')
+      tags: transaction.tags.join(', '),
+      installments: 1
     });
     this.modalOpen.set(true);
   }
@@ -152,6 +155,7 @@ export class Transactions implements OnInit {
       return;
     }
     const raw = this.form.getRawValue();
+    const editing = this.editing();
     const payload = {
       description: raw.description,
       amount: raw.amount as number,
@@ -159,9 +163,9 @@ export class Transactions implements OnInit {
       type: raw.type,
       accountId: raw.accountId,
       categoryId: raw.categoryId,
-      tags: raw.tags.split(',').map((tag) => tag.trim()).filter((tag) => tag.length > 0)
+      tags: raw.tags.split(',').map((tag) => tag.trim()).filter((tag) => tag.length > 0),
+      ...(!editing && raw.installments > 1 ? { installments: raw.installments } : {})
     };
-    const editing = this.editing();
     const request$ = editing
       ? this.transactionService.update(editing.id, payload)
       : this.transactionService.create(payload);
@@ -176,23 +180,43 @@ export class Transactions implements OnInit {
     });
   }
 
-  remove(transaction: Transaction): void {
-    this.transactionService.delete(transaction.id).subscribe({
+  remove(transaction: Transaction, scope?: 'group'): void {
+    this.transactionService.delete(transaction.id, scope).subscribe({
       next: () => this.load(),
       error: () => this.errorMessage.set('Erro ao excluir o lançamento')
     });
   }
 
-  private load(): void {
+  /** Preview mostrado abaixo do campo de parcelas no formulário de criação. */
+  installmentsPreview(): string | null {
+    const raw = this.form.getRawValue();
+    if (this.editing() || raw.installments <= 1 || !raw.amount) {
+      return null;
+    }
+    return `${raw.installments}x de ${formatCurrency(raw.amount)}`;
+  }
+
+  /** Exporta as transações do mês com os filtros atualmente aplicados na tela. */
+  export(format: 'csv' | 'xlsx'): void {
+    this.transactionService.export(this.month(), this.currentFilters(), format).subscribe({
+      next: (blob) => downloadBlob(blob, `transacoes-${this.month()}.${format}`),
+      error: () => this.errorMessage.set('Erro ao exportar as transações')
+    });
+  }
+
+  private currentFilters(): TransactionFilters {
     const raw = this.filterForm.getRawValue();
-    const filters: TransactionFilters = {
+    return {
       accountId: raw.accountId || undefined,
       categoryId: raw.categoryId || undefined,
       type: (raw.type || undefined) as TransactionFilters['type'],
       q: raw.q || undefined,
       tag: raw.tag || undefined
     };
-    this.transactionService.list(this.month(), filters, this.page()).subscribe((result) => {
+  }
+
+  private load(): void {
+    this.transactionService.list(this.month(), this.currentFilters(), this.page()).subscribe((result) => {
       this.transactions.set(result.content);
       this.totalElements.set(result.totalElements);
       this.totalPages.set(result.totalPages);
@@ -208,4 +232,17 @@ function currentMonth(): string {
 function todayIso(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+}
+
+function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
 }

@@ -11,10 +11,30 @@ export class TransactionService {
   private readonly http = inject(HttpClient);
 
   list(month: string, filters: TransactionFilters = {}, page = 0, size = 50): Observable<PageResponse<Transaction>> {
-    let params = new HttpParams()
-      .set('month', month)
-      .set('page', page)
-      .set('size', size);
+    const params = this.filterParams(month, filters).set('page', page).set('size', size);
+    return this.http.get<PageResponse<Transaction>>(API, { params });
+  }
+
+  export(month: string, filters: TransactionFilters, format: 'csv' | 'xlsx'): Observable<Blob> {
+    const params = this.filterParams(month, filters).set('format', format);
+    return this.http.get(`${API}/export`, { params, responseType: 'blob' });
+  }
+
+  create(payload: TransactionPayload): Observable<Transaction> {
+    return this.http.post<Transaction>(API, payload);
+  }
+
+  update(id: string, payload: TransactionPayload): Observable<Transaction> {
+    return this.http.put<Transaction>(`${API}/${id}`, payload);
+  }
+
+  delete(id: string, scope?: 'group'): Observable<void> {
+    const params = scope ? new HttpParams().set('scope', scope) : undefined;
+    return this.http.delete<void>(`${API}/${id}`, { params });
+  }
+
+  private filterParams(month: string, filters: TransactionFilters): HttpParams {
+    let params = new HttpParams().set('month', month);
     if (filters.accountId) {
       params = params.set('accountId', filters.accountId);
     }
@@ -30,18 +50,6 @@ export class TransactionService {
     if (filters.tag) {
       params = params.set('tag', filters.tag);
     }
-    return this.http.get<PageResponse<Transaction>>(API, { params });
-  }
-
-  create(payload: TransactionPayload): Observable<Transaction> {
-    return this.http.post<Transaction>(API, payload);
-  }
-
-  update(id: string, payload: TransactionPayload): Observable<Transaction> {
-    return this.http.put<Transaction>(`${API}/${id}`, payload);
-  }
-
-  delete(id: string): Observable<void> {
-    return this.http.delete<void>(`${API}/${id}`);
+    return params;
   }
 }

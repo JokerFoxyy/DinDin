@@ -76,12 +76,34 @@ public class TransactionService {
 	@Transactional
 	public TransactionResponse create(UUID userId, TransactionRequest request) {
 		ValidatedRefs refs = validate(userId, request);
-		Transaction transaction = new Transaction(userId, refs.account().getId(), refs.category().getId(),
-				invoiceIdFor(refs.account(), request.date()), request.description().trim(),
-				request.amount(), request.date(), request.type());
-		transaction.updateTags(normalizeTags(request.tags()));
-		transactionRepository.save(transaction);
-		return toResponse(transaction, refs);
+		int installments = request.installments() != null ? request.installments() : 1;
+		if (installments > 1 && request.type() != TransactionType.EXPENSE) {
+			throw new BusinessException("Parcelamento só é permitido para gastos");
+		}
+		Set<String> tags = normalizeTags(request.tags());
+		if (installments == 1) {
+			Transaction transaction = new Transaction(userId, refs.account().getId(), refs.category().getId(),
+					invoiceIdFor(refs.account(), request.date()), request.description().trim(),
+					request.amount(), request.date(), request.type());
+			transaction.updateTags(tags);
+			transactionRepository.save(transaction);
+			return toResponse(transaction, refs);
+		}
+		UUID groupId = UUID.randomUUID();
+		Transaction firstInstallment = null;
+		for (int i = 0; i < installments; i++) {
+			LocalDate installmentDate = request.date().plusMonths(i);
+			Transaction installment = Transaction.installment(userId, refs.account().getId(),
+					refs.category().getId(), invoiceIdFor(refs.account(), installmentDate),
+					request.description().trim(), request.amount(), installmentDate, request.type(),
+					groupId, i + 1, installments);
+			installment.updateTags(tags);
+			transactionRepository.save(installment);
+			if (i == 0) {
+				firstInstallment = installment;
+			}
+		}
+		return toResponse(firstInstallment, refs);
 	}
 
 	@Transactional
@@ -110,8 +132,15 @@ public class TransactionService {
 	}
 
 	@Transactional
-	public void delete(UUID userId, UUID transactionId) {
-		transactionRepository.delete(findOwned(userId, transactionId));
+	public void delete(UUID userId, UUID transactionId, String scope) {
+		Transaction transaction = findOwned(userId, transactionId);
+		if ("group".equals(scope) && transaction.getInstallmentGroupId() != null) {
+			transactionRepository.deleteAll(
+					transactionRepository.findAllByUserIdAndInstallmentGroupIdAndDateGreaterThanEqual(
+							userId, transaction.getInstallmentGroupId(), transaction.getDate()));
+			return;
+		}
+		transactionRepository.delete(transaction);
 	}
 
 	/** Marca/desmarca o pagamento (usado no checkbox "pago?" dos fixos). */
