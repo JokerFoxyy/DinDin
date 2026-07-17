@@ -134,12 +134,12 @@ Pré-req: #2 (independente do MVP).
 Tasks: (1) client HTTP da série 12 com cache local; (2) endpoint carteira × CDI acumulado; (3) testes com mock + verificação. 216 testes API (JaCoCo ≥90%); verificado com a API real do Bacen.
 Pré-req: #13.
 
-**#15 — Investimentos (frontend)**
-Tasks: (1) cards por classe (patrimônio total, reserva, RF, RV); (2) gráfico de linha patrimônio × CDI; (3) lançamentos de aporte/resgate/atualização; (4) verificação contra o protótipo.
+**#15 — Investimentos (frontend)** ✅ CONCLUÍDA (2026-07-16 — SDD: `docs/session-15-investimentos-frontend/SDD.md`)
+Tasks: (1) cards por classe (patrimônio total, reserva, RF, RV); (2) gráfico de linha patrimônio × CDI; (3) lançamentos de aporte/resgate/atualização; (4) verificação contra o protótipo. 171 testes web (cobertura ≥90/80/90/90).
 Pré-req: #14.
 
-**#16 — Metas Financeiras**
-Tasks: (1) migration V6 + CRUD goals/contributions + cálculo de aporte necessário; (2) tela Metas com barras de progresso e "R$ X/mês até data"; (3) verificação.
+**#16 — Metas Financeiras** ✅ CONCLUÍDA (2026-07-16 — SDD: `docs/session-16-metas-financeiras/SDD.md`). **Fase 2 (Investimentos) completa.**
+Tasks: (1) migration **V9** (não V6, já usada pela sessão #10) + CRUD goals/contributions + cálculo de aporte necessário; (2) tela Metas com barras de progresso e "R$ X/mês até data"; (3) verificação. 239 testes API (JaCoCo ≥90%), 152 testes web (cobertura ≥90/80/90/90).
 Pré-req: #13.
 
 ### Fase 3 — Qualidade de vida

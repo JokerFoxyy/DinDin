@@ -134,7 +134,13 @@ Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/post
 - `/v1/investments/report`: saldo atual + rentabilidade do último período por investimento e agregado por classe (`InvestmentReturnCalculator`).
 - **Cálculo (TWR simplificado)**: percorre as entries em ordem de data; `APORTE`/`RESGATE` somam/subtraem do saldo corrente; `ATUALIZACAO_SALDO` **substitui** o saldo pelo `balanceAfter` informado. Entre duas atualizações consecutivas: `fluxoLíquido = Σaportes − Σresgates` no período; `rendimento = saldoAtual − saldoAnterior − fluxoLíquido`; `percentual = rendimento / saldoAnterior × 100` (nulo com menos de duas atualizações). Agregação por classe roda o mesmo cálculo tratando todas as entries dos investimentos da classe como uma única linha do tempo.
 - Migration **V7**. LGPD (`UserDataService`): investimentos entram na exportação e na exclusão de conta (antes do `refreshTokenRepository`).
-- Frontend fica para a sessão #15 (Fase 2).
+
+## Investimentos (sessão #15) — frontend
+
+- `web/src/app/features/investments/`: cards de patrimônio (total + 3 classes fixas, mesmo sem investimento cadastrado), lista de investimentos com rentabilidade do último período, gráfico "Evolução do patrimônio × CDI", tabela de últimos lançamentos e CRUD (dois modais: investimento e lançamento — mesmo padrão dos orçamentos, sessão #10).
+- **Gráfico calculado no cliente**: a API não expõe uma série histórica pronta do patrimônio total (só saldo atual + rentabilidade do último período). `investments.utils.ts` reimplementa a máquina de estados do `InvestmentReturnCalculator` (`buildBalanceTimeline`) a partir de `GET /v1/investments/{id}/entries` de cada investimento, soma as linhas do tempo (`sumTimelines`, forward-fill) e alinha com o CDI acumulado (`alignSeries`, também forward-fill) num eixo `category` só de strings (sem adapter de tempo do Chart.js).
+- Dois eixos Y no Chart.js: patrimônio em R$ (esquerda) × CDI acumulado em % (direita) — grandezas diferentes, não dá pra normalizar num único eixo sem base arbitrária.
+- Metas de patrimônio (painel do protótipo `prototipo-dashboard.html`) ficam fora de escopo — é a sessão #16.
 
 ## Integração CDI (sessão #14) — backend
 
@@ -143,6 +149,16 @@ Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/post
 - **Cache local** (`cdi_rates`, migration **V8**): se já existe uma linha com `date = to` (data final, truncada para no máximo ontem — Bacen não tem o dia corrente), assume o intervalo inteiro em cache e não rechama o Bacen; senão busca tudo de novo e grava via `saveAll` (upsert natural pela PK `date`, sem SQL upsert manual).
 - Cálculo do acumulado é **composto**: `Π(1 + taxa_i/100) − 1`, não soma simples — cada ponto da série já traz o percentual acumulado até aquele dia.
 - Testes mockam a chamada HTTP: `MockRestServiceServer` no client, `@MockitoBean` de `BacenCdiClient` no teste de integração (sem chamada de rede real no CI).
+
+## Metas Financeiras (sessão #16) — Fase 2 completa
+
+- `/v1/goals` (CRUD: `name`/`targetAmount`/`targetDate` todos editáveis — diferente de Investimento, aqui não há série histórica que uma edição possa corromper); `DELETE` cascata (`ON DELETE CASCADE` em `goal_contributions.goal_id`).
+- `/v1/goals/{id}/contributions`: `GET`/`POST` (`month` + `amount`, várias contribuições no mesmo mês são permitidas e somadas — sem unique constraint, diferente de orçamento)/`DELETE`.
+- `GET /v1/goals` já retorna o relatório embutido (`accumulated`, `progressPercentage`, `requiredMonthlyContribution`) — não há endpoint de relatório separado, já que não existe filtro por mês como em Orçamentos.
+- **Cálculo do aporte necessário** (`RequiredContributionCalculator`, regra 5 do plano): `restante = max(alvo − acumulado, 0)`; se `restante = 0` → `0`; se o mês atual já alcançou/passou o mês alvo → `restante` inteiro (tudo devido agora); senão `restante / mesesRestantes`, **arredondado para cima** (evita subestimar o aporte).
+- Migration **V9** (o `PLANO-SDD.md` original citava V6, já usada pela sessão #10 — Orçamentos).
+- Frontend (`web/src/app/features/goals/`): barra de progresso por meta + "Aporte necessário: R$ X/mês até mmm/aaaa" (protótipo), modais de meta e de aporte (mesmo padrão dos orçamentos/investimentos). Ícone fixo 🎯 por meta (a planilha/protótipo usa emoji livre por meta, não persistido no schema).
+- LGPD (`UserDataService`): metas entram na exportação e na exclusão de conta (depois de investimentos, antes do `refreshTokenRepository`).
 
 ## Auth & Segurança (sessões #2 e #S)
 
@@ -171,3 +187,7 @@ Remote: `https://github.com/JokerFoxyy/DinDin.git`. Mesmo fluxo do ContratoIA:
 4. `develop → main` só via PR de release (criado automaticamente pelo `auto-pr.yml` no push da develop).
 
 CI (`.github/workflows/`): `ci-api.yml` (mvnw verify com Testcontainers + JaCoCo 90%; imagem Docker → GHCR na main) e `ci-web.yml` (lint, build:prod, test:ci com thresholds) usam **filtros de path** — mudança só em `api/` não roda CI do front e vice-versa; ao editar um workflow, o próprio arquivo está nos paths. `security.yml`: CodeQL (Java e TS), Trivy fs (+ imagem na main), Dependency Review em PRs, cron semanal.
+
+**Ruleset de `develop`/`main`**: 1 aprovação obrigatória + status checks (`build-and-test`, `CodeQL Analysis`). `dismiss_stale_reviews_on_push: false` (desativado 2026-07-16) — aprovação não é descartada por commits novos no PR, já que é sempre o mesmo revisor (o usuário).
+
+`feature-pr.yml`/`auto-pr.yml` (bots que criam os PRs) usam **`secrets.RELEASE_PAT`** (PAT fine-grained do usuário, escopo Pull requests + Contents no repo) em vez do `GITHUB_TOKEN` padrão nos passos `gh pr create`/`gh pr comment`. Motivo: eventos disparados pelo `GITHUB_TOKEN` não acionam outros workflows (regra anti-recursão do GitHub) — o `pull_request: opened` criado por esses bots nunca rodava `ci-api.yml`/`ci-web.yml`/`security.yml` sozinho, precisava de `gh run rerun` manual (aparecia como "action_required"). Com o PAT, o evento é atribuído a um usuário real e o CI dispara normalmente.
