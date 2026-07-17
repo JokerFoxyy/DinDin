@@ -61,6 +61,18 @@ h1 {
   padding: 1px 8px;
 }
 
+.installment-chip {
+  margin-left: 6px;
+  color: var(--accent);
+  background: rgba(79, 142, 247, .15);
+}
+
+.installment-preview {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
 .modal select {
   width: 100%;
   padding: 10px 12px;

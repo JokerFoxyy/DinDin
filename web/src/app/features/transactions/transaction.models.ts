@@ -14,6 +14,8 @@ export interface Transaction {
   categoryColor: string | null;
   invoiceMonth: string | null; // yyyy-MM-dd (primeiro dia do mês da fatura)
   tags: string[];
+  installmentNumber: number | null;
+  installmentCount: number | null;
 }
 
 export interface TransactionPayload {
@@ -24,6 +26,7 @@ export interface TransactionPayload {
   accountId: string;
   categoryId: string;
   tags: string[];
+  installments?: number;
 }
 
 export interface PageResponse<T> {

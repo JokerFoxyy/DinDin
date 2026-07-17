@@ -70,4 +70,23 @@ describe('TransactionService', () => {
     expect(del.request.method).toBe('DELETE');
     del.flush(null);
   });
+
+  it('should create with installments when provided', () => {
+    service.create({
+      description: 'Notebook', amount: 500, date: '2026-07-09', type: 'EXPENSE',
+      accountId: 'a1', categoryId: 'c1', tags: [], installments: 6
+    }).subscribe();
+
+    const post = httpMock.expectOne('/api/v1/transactions');
+    expect((post.request.body as { installments: number }).installments).toBe(6);
+    post.flush({});
+  });
+
+  it('should include the scope param when deleting with a scope', () => {
+    service.delete('t1', 'group').subscribe();
+
+    const del = httpMock.expectOne((r) => r.url === '/api/v1/transactions/t1');
+    expect(del.request.params.get('scope')).toBe('group');
+    del.flush(null);
+  });
 });

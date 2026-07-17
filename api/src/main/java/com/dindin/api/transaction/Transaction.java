@@ -63,6 +63,15 @@ public class Transaction {
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
 
+	@Column(name = "installment_group_id")
+	private UUID installmentGroupId;
+
+	@Column(name = "installment_number")
+	private Integer installmentNumber;
+
+	@Column(name = "installment_count")
+	private Integer installmentCount;
+
 	@ElementCollection(fetch = FetchType.EAGER)
 	@CollectionTable(name = "transaction_tags", joinColumns = @JoinColumn(name = "transaction_id"))
 	@Column(name = "tag")
@@ -90,6 +99,18 @@ public class Transaction {
 				description, amount, date, type);
 		transaction.recurringId = recurringId;
 		transaction.paid = false;
+		return transaction;
+	}
+
+	/** Uma parcela (1..count) de uma compra parcelada; amount é o valor da própria parcela. */
+	public static Transaction installment(UUID userId, UUID accountId, UUID categoryId, UUID invoiceId,
+			String description, BigDecimal amount, LocalDate date, TransactionType type,
+			UUID installmentGroupId, int installmentNumber, int installmentCount) {
+		Transaction transaction = new Transaction(userId, accountId, categoryId, invoiceId,
+				description, amount, date, type);
+		transaction.installmentGroupId = installmentGroupId;
+		transaction.installmentNumber = installmentNumber;
+		transaction.installmentCount = installmentCount;
 		return transaction;
 	}
 
@@ -170,6 +191,18 @@ public class Transaction {
 
 	public Set<String> getTags() {
 		return tags;
+	}
+
+	public UUID getInstallmentGroupId() {
+		return installmentGroupId;
+	}
+
+	public Integer getInstallmentNumber() {
+		return installmentNumber;
+	}
+
+	public Integer getInstallmentCount() {
+		return installmentCount;
 	}
 
 }

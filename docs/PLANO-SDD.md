@@ -148,8 +148,8 @@ Pré-req: #13.
 Tasks: (1) alerta ao estourar orçamento (badge/notificação no app); (2) busca full-text e filtros avançados; (3) tags livres em transações; (4) verificação. Migration **V10** (`transaction_tags`). 197 testes web (cobertura ≥90/80/90/90); verificado end-to-end no browser.
 Pré-req: #11.
 
-**#18 — Parcelamentos**
-Tasks: (1) compra em N× gera N transações futuras vinculadas; (2) UI de parcelamento no lançamento; (3) verificação.
+**#18 — Parcelamentos** ✅ CONCLUÍDA (2026-07-17 — SDD: `docs/session-18-parcelamentos/SDD.md`)
+Tasks: (1) compra em N× gera N transações futuras vinculadas; (2) UI de parcelamento no lançamento; (3) verificação. Migration **V11**. 252 testes API + 206 testes web (cobertura ≥90/80/90/90); verificado end-to-end no browser.
 Pré-req: #9.
 
 **#19 — Export CSV/xlsx**
