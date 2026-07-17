@@ -32,6 +32,7 @@ h1 {
 }
 
 .filters select,
+.filters input,
 .modal select {
   background: var(--card2);
   border: 1px solid var(--border);
@@ -39,6 +40,25 @@ h1 {
   padding: 8px 10px;
   font-size: 13px;
   color: var(--text);
+}
+
+.filters input {
+  width: 140px;
+}
+
+.tag-list {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.tag-chip {
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--card2);
+  border-radius: 10px;
+  padding: 1px 8px;
 }
 
 .modal select {

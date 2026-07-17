@@ -13,6 +13,7 @@ export interface Transaction {
   categoryIcon: string | null;
   categoryColor: string | null;
   invoiceMonth: string | null; // yyyy-MM-dd (primeiro dia do mês da fatura)
+  tags: string[];
 }
 
 export interface TransactionPayload {
@@ -22,6 +23,7 @@ export interface TransactionPayload {
   type: TransactionType;
   accountId: string;
   categoryId: string;
+  tags: string[];
 }
 
 export interface PageResponse<T> {
@@ -36,6 +38,8 @@ export interface TransactionFilters {
   accountId?: string;
   categoryId?: string;
   type?: TransactionType;
+  q?: string;
+  tag?: string;
 }
 
 export const TRANSACTION_TYPE_LABELS: Record<Exclude<TransactionType, 'INVOICE_ADJUSTMENT'>, string> = {

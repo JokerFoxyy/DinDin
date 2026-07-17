@@ -39,6 +39,12 @@ public class BudgetController {
 		return budgetService.report(user.id(), month);
 	}
 
+	@GetMapping("/alerts")
+	public List<BudgetReportResponse> alerts(@AuthenticationPrincipal AuthenticatedUser user,
+			@RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM") YearMonth month) {
+		return budgetService.alerts(user.id(), month != null ? month : YearMonth.now());
+	}
+
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	public BudgetReportResponse create(@AuthenticationPrincipal AuthenticatedUser user,

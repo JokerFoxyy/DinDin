@@ -70,7 +70,7 @@ class TransactionServiceTest {
 
 	private TransactionRequest request(Account account, Category category, TransactionType type, LocalDate date) {
 		return new TransactionRequest("Padaria", new BigDecimal("31.73"), date, type,
-				account.getId(), category.getId());
+				account.getId(), category.getId(), null);
 	}
 
 	@Test
@@ -111,7 +111,7 @@ class TransactionServiceTest {
 	void shouldThrowBusiness_whenTypeIsInvoiceAdjustment() {
 		assertThatThrownBy(() -> transactionService.create(userId,
 				new TransactionRequest("Ajuste", BigDecimal.TEN, LocalDate.now(),
-						TransactionType.INVOICE_ADJUSTMENT, UUID.randomUUID(), UUID.randomUUID())))
+						TransactionType.INVOICE_ADJUSTMENT, UUID.randomUUID(), UUID.randomUUID(), null)))
 				.isInstanceOf(BusinessException.class)
 				.hasMessageContaining("reservado");
 		verify(transactionRepository, never()).save(any());
@@ -135,7 +135,7 @@ class TransactionServiceTest {
 
 		assertThatThrownBy(() -> transactionService.create(userId,
 				new TransactionRequest("Padaria", BigDecimal.TEN, LocalDate.now(),
-						TransactionType.EXPENSE, UUID.randomUUID(), UUID.randomUUID())))
+						TransactionType.EXPENSE, UUID.randomUUID(), UUID.randomUUID(), null)))
 				.isInstanceOf(NotFoundException.class);
 	}
 
@@ -185,7 +185,7 @@ class TransactionServiceTest {
 
 		assertThatThrownBy(() -> transactionService.update(userId, UUID.randomUUID(),
 				new TransactionRequest("x", BigDecimal.ONE, LocalDate.now(),
-						TransactionType.EXPENSE, UUID.randomUUID(), UUID.randomUUID())))
+						TransactionType.EXPENSE, UUID.randomUUID(), UUID.randomUUID(), null)))
 				.isInstanceOf(BusinessException.class);
 	}
 

@@ -6,11 +6,19 @@ import { of, throwError } from 'rxjs';
 import { Shell } from './shell';
 import { AuthService } from '../auth/auth.service';
 import { UserResponse } from '../auth/auth.models';
+import { BudgetService } from '../../features/budgets/budget.service';
+import { BudgetReport } from '../../features/budgets/budget.models';
 
 describe('Shell', () => {
   let fixture: ComponentFixture<Shell>;
   let component: Shell;
   let authService: jasmine.SpyObj<AuthService> & { currentUser: ReturnType<typeof signal<UserResponse | null>> };
+  let budgetService: jasmine.SpyObj<BudgetService>;
+
+  const overBudget: BudgetReport = {
+    id: 'b1', categoryId: 'c1', categoryName: 'Lazer', categoryIcon: '🎮', categoryColor: '#a371f7',
+    budgeted: 100, spent: 150, percentage: 150, over: true
+  };
 
   beforeEach(async () => {
     const spy = jasmine.createSpyObj<AuthService>('AuthService',
@@ -19,9 +27,16 @@ describe('Shell', () => {
     authService.loadCurrentUser.and.returnValue(of({ id: 'uuid-1', email: 'victor@dindin.com' }));
     authService.logout.and.returnValue(of(void 0));
 
+    budgetService = jasmine.createSpyObj<BudgetService>('BudgetService', ['alerts']);
+    budgetService.alerts.and.returnValue(of([]));
+
     await TestBed.configureTestingModule({
       imports: [Shell],
-      providers: [provideRouter([]), { provide: AuthService, useValue: authService }]
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: authService },
+        { provide: BudgetService, useValue: budgetService }
+      ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(Shell);
@@ -53,6 +68,21 @@ describe('Shell', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.user-email').textContent).toContain('victor@dindin.com');
+  });
+
+  it('should not show a budget alert badge when there are no alerts', () => {
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.alert-badge')).toBeNull();
+  });
+
+  it('should show a budget alert badge with the count when there are over-budget categories', () => {
+    budgetService.alerts.and.returnValue(of([overBudget]));
+
+    fixture.detectChanges();
+
+    expect(component.budgetAlertCount()).toBe(1);
+    expect(fixture.nativeElement.querySelector('.alert-badge').textContent).toContain('1');
   });
 
   it('should logout and navigate to login when logout is clicked', () => {
