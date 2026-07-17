@@ -7,7 +7,11 @@ import com.dindin.api.transaction.dto.TransactionRequest;
 import com.dindin.api.transaction.dto.TransactionResponse;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,9 +32,12 @@ import java.util.UUID;
 public class TransactionController {
 
 	private final TransactionService transactionService;
+	private final TransactionExportService transactionExportService;
 
-	public TransactionController(TransactionService transactionService) {
+	public TransactionController(TransactionService transactionService,
+			TransactionExportService transactionExportService) {
 		this.transactionService = transactionService;
+		this.transactionExportService = transactionExportService;
 	}
 
 	@GetMapping
@@ -45,6 +52,25 @@ public class TransactionController {
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "50") int size) {
 		return transactionService.search(user.id(), month, accountId, categoryId, type, q, tag, page, size);
+	}
+
+	@GetMapping("/export")
+	public ResponseEntity<byte[]> export(
+			@AuthenticationPrincipal AuthenticatedUser user,
+			@RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth month,
+			@RequestParam(required = false) UUID accountId,
+			@RequestParam(required = false) UUID categoryId,
+			@RequestParam(required = false) TransactionType type,
+			@RequestParam(required = false) String q,
+			@RequestParam(required = false) String tag,
+			@RequestParam(defaultValue = "csv") String format) {
+		TransactionExportService.ExportFile file = transactionExportService.export(
+				user.id(), month, accountId, categoryId, type, q, tag, format);
+		return ResponseEntity.ok()
+				.contentType(MediaType.parseMediaType(file.contentType()))
+				.header(HttpHeaders.CONTENT_DISPOSITION,
+						ContentDisposition.attachment().filename(file.filename()).build().toString())
+				.body(file.content());
 	}
 
 	@PostMapping

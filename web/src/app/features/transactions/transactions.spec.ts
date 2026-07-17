@@ -43,7 +43,7 @@ describe('Transactions', () => {
   beforeEach(async () => {
     localStorage.removeItem('dindin.lastAccount');
     transactionService = jasmine.createSpyObj<TransactionService>('TransactionService',
-      ['list', 'create', 'update', 'delete']);
+      ['list', 'create', 'update', 'delete', 'export']);
     transactionService.list.and.returnValue(of(pageOf([padaria, cartao])));
     const accountService = jasmine.createSpyObj<AccountService>('AccountService', ['list']);
     accountService.list.and.returnValue(of(accounts));
@@ -269,6 +269,29 @@ describe('Transactions', () => {
     component.form.patchValue({ amount: 100, installments: 3 });
 
     expect(component.installmentsPreview()).toBeNull();
+  });
+
+  it('should export with the current month and filters', () => {
+    transactionService.export.and.returnValue(of(new Blob(['data'])));
+    spyOn(URL, 'createObjectURL').and.returnValue('blob:fake-url');
+    spyOn(URL, 'revokeObjectURL');
+    spyOn(HTMLAnchorElement.prototype, 'click');
+    component.filterForm.patchValue({ tag: 'viagem' });
+
+    component.export('xlsx');
+
+    expect(transactionService.export).toHaveBeenCalledWith(
+      jasmine.any(String), jasmine.objectContaining({ tag: 'viagem' }), 'xlsx');
+    expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:fake-url');
+  });
+
+  it('should show an error message when export fails', () => {
+    transactionService.export.and.returnValue(throwError(() => new HttpErrorResponse({ status: 500 })));
+
+    component.export('csv');
+
+    expect(component.errorMessage()).toContain('exportar');
   });
 
   it('should show backend message when save fails', () => {

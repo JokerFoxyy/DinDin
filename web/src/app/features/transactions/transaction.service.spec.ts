@@ -89,4 +89,15 @@ describe('TransactionService', () => {
     expect(del.request.params.get('scope')).toBe('group');
     del.flush(null);
   });
+
+  it('should request the export as a blob with filters and format', () => {
+    service.export('2026-07', { tag: 'viagem' }, 'xlsx').subscribe((blob) => expect(blob).toBeTruthy());
+
+    const request = httpMock.expectOne((r) => r.url === '/api/v1/transactions/export');
+    expect(request.request.params.get('month')).toBe('2026-07');
+    expect(request.request.params.get('tag')).toBe('viagem');
+    expect(request.request.params.get('format')).toBe('xlsx');
+    expect(request.request.responseType).toBe('blob');
+    request.flush(new Blob(['data']));
+  });
 });
