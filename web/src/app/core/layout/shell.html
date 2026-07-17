@@ -1,9 +1,13 @@
 <div class="layout">
-  <aside>
+  <button class="menu-toggle" type="button" (click)="toggleSidebar()" aria-label="Abrir menu">☰</button>
+  @if (sidebarOpen()) {
+    <div class="sidebar-backdrop" (click)="closeSidebar()"></div>
+  }
+  <aside [class.open]="sidebarOpen()">
     <div class="logo">Din<span>Din</span></div>
     <nav>
       @for (item of navItems; track item.path) {
-        <a class="nav-item" [routerLink]="item.path" routerLinkActive="active">
+        <a class="nav-item" [routerLink]="item.path" routerLinkActive="active" (click)="closeSidebar()">
           <span>{{ item.icon }}</span> {{ item.label }}
           @if (item.path === '/orcamentos' && budgetAlertCount() > 0) {
             <span class="alert-badge">{{ budgetAlertCount() }}</span>

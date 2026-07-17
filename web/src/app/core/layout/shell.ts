@@ -23,6 +23,7 @@ export class Shell implements OnInit {
 
   readonly currentUser = this.authService.currentUser;
   readonly budgetAlertCount = signal(0);
+  readonly sidebarOpen = signal(false);
 
   readonly navItems: NavItem[] = [
     { icon: '📊', label: 'Dashboard', path: '/dashboard' },
@@ -44,6 +45,14 @@ export class Shell implements OnInit {
         this.router.navigate(['/login']);
       }
     });
+  }
+
+  toggleSidebar(): void {
+    this.sidebarOpen.update((open) => !open);
+  }
+
+  closeSidebar(): void {
+    this.sidebarOpen.set(false);
   }
 
   logout(): void {

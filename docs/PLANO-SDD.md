@@ -156,8 +156,8 @@ Pré-req: #9.
 Tasks: (1) endpoint de export (POI); (2) botão de export com filtros aplicados; (3) verificação. 259 testes API + 209 testes web (cobertura ≥90/80/90/90); verificado com arquivos reais (CSV e xlsx).
 Pré-req: #7.
 
-**#20 — PWA**
-Tasks: (1) `@angular/pwa` (manifest + service worker); (2) ajustes responsive mobile (sidebar colapsável, já esboçado no protótipo); (3) verificação (instalável no celular).
+**#20 — PWA** ✅ CONCLUÍDA (2026-07-17 — SDD: `docs/session-20-pwa/SDD.md`)
+Tasks: (1) `@angular/pwa` (manifest + service worker); (2) ajustes responsive mobile (sidebar vira drawer off-canvas com botão hambúrguer abaixo de 700px); (3) verificação. 213 testes web (cobertura ≥90/80/90/90); verificado end-to-end com service worker registrado, manifest servido e drawer mobile funcionando (login real + viewport mobile no browser).
 Pré-req: #11.
 
 **#21 — Deploy AWS**

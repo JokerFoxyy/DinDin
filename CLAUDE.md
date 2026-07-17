@@ -183,6 +183,12 @@ Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/post
 - Nome do arquivo: `transacoes-{mês}.csv`/`.xlsx`. Resposta é `ResponseEntity<byte[]>` com `Content-Disposition: attachment`.
 - Frontend: botões "Exportar CSV"/"Exportar xlsx" na tela de Transações usam os filtros/mês atuais da tela (`TransactionService.export()`, `responseType: 'blob'`); download disparado via `URL.createObjectURL` + `<a download>` temporário.
 
+## PWA (sessão #20)
+
+- `ng add @angular/pwa` gerou `manifest.webmanifest` (nome/tema "DinDin", `#0d1117`), `ngsw-config.json` e o registro do service worker via `provideServiceWorker('ngsw-worker.js', { enabled: !isDevMode() })` no `app.config.ts` — **desabilitado em `ng serve` normal**, só ativa em build de produção (`ng build --configuration production` ou `ng serve --configuration production`).
+- Ícones do manifest são o placeholder padrão do schematic (logo do Angular) — ainda não existe um asset de marca próprio do DinDin; pendência conhecida.
+- `Shell`: sidebar vira **drawer off-canvas** abaixo de 700px (`transform: translateX(-100%)`, botão hambúrguer fixo, backdrop semi-transparente) — fecha sozinha ao navegar para outra rota ou ao clicar no backdrop. Entre 701–900px mantém o comportamento anterior (barra horizontal rolável, sessão anterior a esta). Estado (`sidebarOpen` signal) não persiste — sempre começa fechada.
+
 ## Auth & Segurança (sessões #2 e #S)
 
 **Modelo de sessão (reescrito na #S):** cookies httpOnly, não JWT no localStorage.
