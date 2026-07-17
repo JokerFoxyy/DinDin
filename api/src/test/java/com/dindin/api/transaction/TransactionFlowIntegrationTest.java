@@ -212,6 +212,43 @@ class TransactionFlowIntegrationTest {
 	}
 
 	@Test
+	void shouldExportCsv_withOnlyFilteredTransactions() throws Exception {
+		post("/v1/transactions", transaction("Padaria", "31.73", "2026-07-05", "EXPENSE", checkingId, expenseCategoryId));
+		post("/v1/transactions", transaction("Salário", "5000.00", "2026-07-01", "INCOME", checkingId, incomeCategoryId));
+
+		ResponseEntity<byte[]> response = rest.exchange(
+				"/v1/transactions/export?month=2026-07&type=EXPENSE", HttpMethod.GET,
+				new HttpEntity<>(headers), byte[].class);
+
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(response.getHeaders().getContentDisposition().getFilename()).isEqualTo("transacoes-2026-07.csv");
+		String csv = new String(response.getBody(), java.nio.charset.StandardCharsets.UTF_8);
+		assertThat(csv).contains("Padaria");
+		assertThat(csv).doesNotContain("Salário");
+	}
+
+	@Test
+	void shouldExportXlsx_whenFormatIsXlsx() throws Exception {
+		post("/v1/transactions", transaction("Padaria", "31.73", "2026-07-05", "EXPENSE", checkingId, expenseCategoryId));
+
+		ResponseEntity<byte[]> response = rest.exchange(
+				"/v1/transactions/export?month=2026-07&format=xlsx", HttpMethod.GET,
+				new HttpEntity<>(headers), byte[].class);
+
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(response.getHeaders().getContentType().toString())
+				.isEqualTo("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+		assertThat(response.getHeaders().getContentDisposition().getFilename()).isEqualTo("transacoes-2026-07.xlsx");
+		assertThat(response.getBody().length).isGreaterThan(0);
+	}
+
+	@Test
+	void shouldReturn401_whenExportingWithoutAuthentication() {
+		assertThat(rest.getForEntity("/v1/transactions/export?month=2026-07", String.class).getStatusCode())
+				.isEqualTo(HttpStatus.UNAUTHORIZED);
+	}
+
+	@Test
 	void shouldReturn400_whenCategoryKindDoesNotMatchType() {
 		ResponseEntity<String> response = post("/v1/transactions",
 				transaction("Errado", "10.00", "2026-07-09", "EXPENSE", checkingId, incomeCategoryId));

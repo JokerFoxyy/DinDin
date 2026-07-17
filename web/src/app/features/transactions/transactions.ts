@@ -196,16 +196,27 @@ export class Transactions implements OnInit {
     return `${raw.installments}x de ${formatCurrency(raw.amount)}`;
   }
 
-  private load(): void {
+  /** Exporta as transações do mês com os filtros atualmente aplicados na tela. */
+  export(format: 'csv' | 'xlsx'): void {
+    this.transactionService.export(this.month(), this.currentFilters(), format).subscribe({
+      next: (blob) => downloadBlob(blob, `transacoes-${this.month()}.${format}`),
+      error: () => this.errorMessage.set('Erro ao exportar as transações')
+    });
+  }
+
+  private currentFilters(): TransactionFilters {
     const raw = this.filterForm.getRawValue();
-    const filters: TransactionFilters = {
+    return {
       accountId: raw.accountId || undefined,
       categoryId: raw.categoryId || undefined,
       type: (raw.type || undefined) as TransactionFilters['type'],
       q: raw.q || undefined,
       tag: raw.tag || undefined
     };
-    this.transactionService.list(this.month(), filters, this.page()).subscribe((result) => {
+  }
+
+  private load(): void {
+    this.transactionService.list(this.month(), this.currentFilters(), this.page()).subscribe((result) => {
       this.transactions.set(result.content);
       this.totalElements.set(result.totalElements);
       this.totalPages.set(result.totalPages);
@@ -225,4 +236,13 @@ function todayIso(): string {
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+}
+
+function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
 }

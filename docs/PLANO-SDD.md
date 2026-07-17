@@ -152,8 +152,8 @@ Pré-req: #11.
 Tasks: (1) compra em N× gera N transações futuras vinculadas; (2) UI de parcelamento no lançamento; (3) verificação. Migration **V11**. 252 testes API + 206 testes web (cobertura ≥90/80/90/90); verificado end-to-end no browser.
 Pré-req: #9.
 
-**#19 — Export CSV/xlsx**
-Tasks: (1) endpoint de export (POI); (2) botão de export com filtros aplicados; (3) verificação.
+**#19 — Export CSV/xlsx** ✅ CONCLUÍDA (2026-07-17 — SDD: `docs/session-19-export-csv-xlsx/SDD.md`)
+Tasks: (1) endpoint de export (POI); (2) botão de export com filtros aplicados; (3) verificação. 259 testes API + 209 testes web (cobertura ≥90/80/90/90); verificado com arquivos reais (CSV e xlsx).
 Pré-req: #7.
 
 **#20 — PWA**

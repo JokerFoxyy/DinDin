@@ -2,6 +2,12 @@
   <h1>Transações</h1>
   <div class="topbar-actions">
     <app-month-picker [month]="month()" (monthChange)="onMonthChange($event)" />
+    <button class="btn-ghost" type="button" (click)="export('csv')" [disabled]="totalElements() === 0">
+      Exportar CSV
+    </button>
+    <button class="btn-ghost" type="button" (click)="export('xlsx')" [disabled]="totalElements() === 0">
+      Exportar xlsx
+    </button>
     <button class="btn" (click)="openCreate()" [disabled]="accounts().length === 0 || categories().length === 0">
       + Nova transação
     </button>

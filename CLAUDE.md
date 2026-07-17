@@ -176,6 +176,13 @@ Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/post
 - Edição de uma parcela (`PUT`) edita só aquela transação — não recalcula nem resincroniza as demais do grupo.
 - Frontend: campo "Parcelas" no formulário (só aparece criando + tipo Gasto), preview "Nx de R$ X"; badge "n/N" na listagem; ação extra "Excluir esta e as próximas" quando a transação pertence a um grupo.
 
+## Export CSV/xlsx (sessão #19)
+
+- `GET /v1/transactions/export?month=&accountId=&categoryId=&type=&q=&tag=&format=csv|xlsx` (default `csv`) — reaproveita os mesmos parâmetros de filtro de `GET /v1/transactions` (sessões #6/#17), sem paginação (exporta tudo que casa com o filtro no mês). `TransactionExportService` monta as linhas; CSV é escrito manualmente (RFC 4180, aspas só quando necessário); xlsx via Apache POI (`XSSFWorkbook`, já dependência do projeto desde a sessão #12).
+- Colunas: Data, Descrição, Conta, Categoria, Tipo, Valor, Tags, Parcela, Fatura — espelham o que já aparece na tela de Transações. No xlsx, "Valor" é célula `NUMERIC` com format `#,##0.00` (nunca texto formatado), pra dar pra somar/filtrar no Excel depois.
+- Nome do arquivo: `transacoes-{mês}.csv`/`.xlsx`. Resposta é `ResponseEntity<byte[]>` com `Content-Disposition: attachment`.
+- Frontend: botões "Exportar CSV"/"Exportar xlsx" na tela de Transações usam os filtros/mês atuais da tela (`TransactionService.export()`, `responseType: 'blob'`); download disparado via `URL.createObjectURL` + `<a download>` temporário.
+
 ## Auth & Segurança (sessões #2 e #S)
 
 **Modelo de sessão (reescrito na #S):** cookies httpOnly, não JWT no localStorage.
