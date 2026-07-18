@@ -160,8 +160,8 @@ Pré-req: #7.
 Tasks: (1) `@angular/pwa` (manifest + service worker); (2) ajustes responsive mobile (sidebar vira drawer off-canvas com botão hambúrguer abaixo de 700px); (3) verificação. 213 testes web (cobertura ≥90/80/90/90); verificado end-to-end com service worker registrado, manifest servido e drawer mobile funcionando (login real + viewport mobile no browser).
 Pré-req: #11.
 
-**#21 — Deploy AWS**
-Tasks: (1) Dockerfiles ARM64 (JVM tunada `-XX:MaxRAMPercentage=50`) + compose de produção com Caddy (TLS + proxy `/api`); (2) Lightsail US$5 (decisão da spec; alternativa EC2 t4g.micro + Savings Plan); (3) backup pg_dump → S3 com lifecycle 30 dias + swap 2 GB; (4) GitHub Actions deploy via SSH; (5) verificação end-to-end em produção.
+**#21 — Deploy AWS** ✅ CÓDIGO CONCLUÍDO (2026-07-18 — SDD: `docs/session-21-deploy-aws/SDD.md`) — **provisionamento real pendente do usuário**
+Tasks: (1) `web/Dockerfile` + `Caddyfile` (Caddy serve o estático do Angular e faz proxy `/api/*`; `api/Dockerfile` já existia da sessão #4) + `infra/docker-compose.prod.yml`; (2) **Lightsail US$5/mês** (decisão do usuário — logo, imagens `linux/amd64`, não ARM); (3) `infra/scripts/backup.sh` (pg_dump → S3, lifecycle 30 dias) + `setup-host.sh` (swap 2GB); (4) `.github/workflows/deploy.yml` (SSH manual via `workflow_dispatch`) + job `docker` novo em `ci-web.yml`; (5) smoke test local do compose completo (proxy, fallback SPA, healthcheck) — verificação end-to-end **em produção real** ainda pendente: requer o usuário comprar domínio, criar a instância Lightsail e configurar os secrets do GitHub (passo a passo em `infra/README.md`).
 Pré-req: #4 + MVP estável (recomendado após #12).
 
 ### Fase 4 — Open Finance

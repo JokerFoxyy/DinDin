@@ -189,6 +189,14 @@ Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/post
 - Ícones do manifest são o placeholder padrão do schematic (logo do Angular) — ainda não existe um asset de marca próprio do DinDin; pendência conhecida.
 - `Shell`: sidebar vira **drawer off-canvas** abaixo de 700px (`transform: translateX(-100%)`, botão hambúrguer fixo, backdrop semi-transparente) — fecha sozinha ao navegar para outra rota ou ao clicar no backdrop. Entre 701–900px mantém o comportamento anterior (barra horizontal rolável, sessão anterior a esta). Estado (`sidebarOpen` signal) não persiste — sempre começa fechada.
 
+## Deploy AWS (sessão #21)
+
+- Stack de produção: **Lightsail** (Ubuntu, US$5/mês, x86_64 — não ARM, apesar do plano original ter cogitado EC2 Graviton) + `infra/docker-compose.prod.yml` (postgres + api + web/Caddy) + Caddy fazendo TLS automático (Let's Encrypt) e reverse proxy de `/api/*` pro container da API.
+- As imagens **não são buildadas na instância** (1GB de RAM não aguenta) — `ci-api.yml` e `ci-web.yml` publicam `ghcr.io/jokerfoxyy/dindin-api`/`-web` a cada merge em `main`; o deploy só dá `pull` + `up -d`.
+- `.github/workflows/deploy.yml` é **manual** (`workflow_dispatch`, não a cada merge) — conecta via SSH (secrets `DEPLOY_HOST`/`DEPLOY_USER`/`DEPLOY_SSH_KEY`, configurados pelo próprio usuário via `gh secret set`, nunca coladas numa sessão de IA).
+- Backup: `infra/scripts/backup.sh` (pg_dump → gzip → S3, cron no host) com lifecycle de 30 dias no bucket (`configure-s3-lifecycle.sh`, roda uma vez). Swap de 2GB e clone do repo: `infra/scripts/setup-host.sh` (roda uma vez na instância nova).
+- Passo a passo completo (domínio, DNS, criação da instância, secrets) em `infra/README.md` — são passos manuais que só o usuário pode executar (conta AWS, pagamento, DNS).
+
 ## Auth & Segurança (sessões #2 e #S)
 
 **Modelo de sessão (reescrito na #S):** cookies httpOnly, não JWT no localStorage.

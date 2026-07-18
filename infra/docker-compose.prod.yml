@@ -1,0 +1,54 @@
+name: dindin-prod
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dindin-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-dindin}
+      POSTGRES_USER: ${POSTGRES_USER:-dindin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dindin} -d ${POSTGRES_DB:-dindin}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    image: ${API_IMAGE:-ghcr.io/jokerfoxyy/dindin-api:latest}
+    container_name: dindin-api-prod
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-dindin}
+      DB_USER: ${POSTGRES_USER:-dindin}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      COOKIE_SECURE: "true"
+
+  web:
+    image: ${WEB_IMAGE:-ghcr.io/jokerfoxyy/dindin-web:latest}
+    container_name: dindin-web-prod
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
