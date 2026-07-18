@@ -85,6 +85,45 @@ describe('Shell', () => {
     expect(fixture.nativeElement.querySelector('.alert-badge').textContent).toContain('1');
   });
 
+  it('should toggle the mobile sidebar open and closed', () => {
+    fixture.detectChanges();
+
+    expect(component.sidebarOpen()).toBeFalse();
+
+    component.toggleSidebar();
+    fixture.detectChanges();
+    expect(component.sidebarOpen()).toBeTrue();
+    expect(fixture.nativeElement.querySelector('aside').classList).toContain('open');
+
+    component.toggleSidebar();
+    expect(component.sidebarOpen()).toBeFalse();
+  });
+
+  it('should close the sidebar when a nav item is clicked', () => {
+    fixture.detectChanges();
+    component.toggleSidebar();
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('.nav-item').click();
+
+    expect(component.sidebarOpen()).toBeFalse();
+  });
+
+  it('should close the sidebar when the backdrop is clicked', () => {
+    component.toggleSidebar();
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('.sidebar-backdrop').click();
+
+    expect(component.sidebarOpen()).toBeFalse();
+  });
+
+  it('should not render the backdrop when the sidebar is closed', () => {
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.sidebar-backdrop')).toBeNull();
+  });
+
   it('should logout and navigate to login when logout is clicked', () => {
     const router = TestBed.inject(Router);
     spyOn(router, 'navigate');

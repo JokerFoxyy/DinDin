@@ -7,6 +7,13 @@
       "runtimeArgs": ["start"],
       "cwd": "web",
       "port": 4200
+    },
+    {
+      "name": "web-pwa",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start", "--", "--configuration", "production", "--port", "4300"],
+      "cwd": "web",
+      "port": 4300
     }
   ]
 }
