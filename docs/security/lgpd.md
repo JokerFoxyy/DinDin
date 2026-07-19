@@ -1,4 +1,4 @@
-# DinDin — Conformidade LGPD & Confidencialidade
+# Guaranin — Conformidade LGPD & Confidencialidade
 
 > Lei 13.709/2018 (LGPD). Documento vivo — atualizar quando novos dados pessoais forem coletados.
 > Criado na Sessão S (2026-07-10). **Nota:** guia técnico de engenharia, não parecer jurídico.

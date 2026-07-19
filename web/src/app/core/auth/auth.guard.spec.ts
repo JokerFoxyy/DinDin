@@ -11,14 +11,14 @@ describe('authGuard', () => {
   const state = {} as RouterStateSnapshot;
 
   beforeEach(() => {
-    localStorage.removeItem('dindin.authed');
+    localStorage.removeItem('guaranin.authed');
     TestBed.configureTestingModule({
       providers: [provideHttpClient(), provideHttpClientTesting()]
     });
   });
 
   afterEach(() => {
-    localStorage.removeItem('dindin.authed');
+    localStorage.removeItem('guaranin.authed');
   });
 
   function runGuard(): boolean | UrlTree {

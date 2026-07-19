@@ -43,7 +43,7 @@ describe('PrivacyPanel', () => {
     component.exportData();
 
     expect(privacyService.exportData).toHaveBeenCalled();
-    expect(anchor.download).toBe('dindin-meus-dados.json');
+    expect(anchor.download).toBe('guaranin-meus-dados.json');
     expect(anchor.click).toHaveBeenCalled();
   });
 

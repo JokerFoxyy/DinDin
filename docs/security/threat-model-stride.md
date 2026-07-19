@@ -1,4 +1,4 @@
-# DinDin — Modelo de Ameaças (STRIDE)
+# Guaranin — Modelo de Ameaças (STRIDE)
 
 > Criado na Sessão S (2026-07-10). Reavaliar a cada mudança que toque autenticação, dados
 > pessoais, fronteiras de rede ou dependências. Status: ✅ mitigado · 🟡 parcial · 🔴 aberto.

@@ -41,7 +41,7 @@ describe('Transactions', () => {
   }
 
   beforeEach(async () => {
-    localStorage.removeItem('dindin.lastAccount');
+    localStorage.removeItem('guaranin.lastAccount');
     transactionService = jasmine.createSpyObj<TransactionService>('TransactionService',
       ['list', 'create', 'update', 'delete', 'export']);
     transactionService.list.and.returnValue(of(pageOf([padaria, cartao])));
@@ -64,7 +64,7 @@ describe('Transactions', () => {
     fixture.detectChanges();
   });
 
-  afterEach(() => localStorage.removeItem('dindin.lastAccount'));
+  afterEach(() => localStorage.removeItem('guaranin.lastAccount'));
 
   it('should render transactions with category tag and invoice hint', () => {
     const text = fixture.nativeElement.textContent;
@@ -91,7 +91,7 @@ describe('Transactions', () => {
   });
 
   it('should prefer the last used account when opening create modal', () => {
-    localStorage.setItem('dindin.lastAccount', 'a2');
+    localStorage.setItem('guaranin.lastAccount', 'a2');
 
     component.openCreate();
 
@@ -107,7 +107,7 @@ describe('Transactions', () => {
 
     expect(transactionService.create).toHaveBeenCalledWith(
       jasmine.objectContaining({ description: 'Padaria', amount: 31.73, accountId: 'a1' }));
-    expect(localStorage.getItem('dindin.lastAccount')).toBe('a1');
+    expect(localStorage.getItem('guaranin.lastAccount')).toBe('a1');
     expect(component.modalOpen()).toBeFalse();
     expect(transactionService.list).toHaveBeenCalledTimes(2);
   });

@@ -5,13 +5,13 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { AuthService } from './auth.service';
 import { UserResponse } from './auth.models';
 
-const AUTH_FLAG = 'dindin.authed';
+const AUTH_FLAG = 'guaranin.authed';
 
 describe('AuthService', () => {
   let service: AuthService;
   let httpMock: HttpTestingController;
 
-  const user: UserResponse = { id: 'u1', email: 'victor@dindin.com' };
+  const user: UserResponse = { id: 'u1', email: 'victor@guaranin.com' };
 
   beforeEach(() => {
     localStorage.removeItem(AUTH_FLAG);
@@ -32,7 +32,7 @@ describe('AuthService', () => {
   });
 
   it('should authenticate and store the flag on login', () => {
-    service.login('victor@dindin.com', 'senha-forte-123').subscribe();
+    service.login('victor@guaranin.com', 'senha-forte-123').subscribe();
 
     const request = httpMock.expectOne('/api/v1/auth/login');
     expect(request.request.method).toBe('POST');
@@ -44,7 +44,7 @@ describe('AuthService', () => {
   });
 
   it('should authenticate on register', () => {
-    service.register('novo@dindin.com', 'senha-forte-123').subscribe();
+    service.register('novo@guaranin.com', 'senha-forte-123').subscribe();
     httpMock.expectOne('/api/v1/auth/register').flush(user);
 
     expect(service.isAuthenticated()).toBeTrue();
@@ -63,11 +63,11 @@ describe('AuthService', () => {
     service.loadCurrentUser().subscribe();
     httpMock.expectOne('/api/v1/auth/me').flush(user);
 
-    expect(service.currentUser()?.email).toBe('victor@dindin.com');
+    expect(service.currentUser()?.email).toBe('victor@guaranin.com');
   });
 
   it('should call logout endpoint and clear the session', () => {
-    service.login('victor@dindin.com', 'senha-forte-123').subscribe();
+    service.login('victor@guaranin.com', 'senha-forte-123').subscribe();
     httpMock.expectOne('/api/v1/auth/login').flush(user);
 
     service.logout().subscribe();
@@ -81,7 +81,7 @@ describe('AuthService', () => {
   });
 
   it('should clear session locally without a network call', () => {
-    service.login('victor@dindin.com', 'senha-forte-123').subscribe();
+    service.login('victor@guaranin.com', 'senha-forte-123').subscribe();
     httpMock.expectOne('/api/v1/auth/login').flush(user);
 
     service.clearSession();
