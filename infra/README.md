@@ -12,7 +12,7 @@ Internet → Caddy (:80/:443, TLS automático)
                           postgres (rede interna, não exposta)
 ```
 
-- `api` e `web` (Caddy + estático) são publicados pelo CI em `ghcr.io/jokerfoxyy/dindin-api` e `ghcr.io/jokerfoxyy/dindin-web` a cada merge em `main` (`.github/workflows/ci-api.yml` / `ci-web.yml`, job `docker`).
+- `api` e `web` (Caddy + estático) são publicados pelo CI em `ghcr.io/jokerfoxyy/guaranin-api` e `ghcr.io/jokerfoxyy/guaranin-web` a cada merge em `main` (`.github/workflows/ci-api.yml` / `ci-web.yml`, job `docker`).
 - O deploy (`.github/workflows/deploy.yml`) **não builda nada na instância** — só faz `pull` das imagens prontas e sobe via SSH. Instância de 1GB de RAM não aguentaria buildar Maven+Angular.
 - Disparo do deploy é **manual** (`workflow_dispatch`), não a cada merge — decisão deliberada de quando ir pra produção.
 
@@ -23,11 +23,11 @@ Nada disso é automatizado — requer acesso à conta AWS/domínio do usuário.
 1. **Domínio**: comprar um domínio (Route 53, Registro.br, Namecheap etc.).
 2. **Instância Lightsail**: criar uma instância Ubuntu 22.04+ (plano US$5/mês), reservar o **IP estático** (Lightsail cobra separado se não usar, mas sem IP fixo o domínio quebra a cada restart).
 3. **DNS**: criar um registro **A** do domínio apontando para o IP estático da instância.
-4. **Setup da instância** (via SSH): copiar e rodar `infra/scripts/setup-host.sh` — instala Docker, cria swap de 2GB, clona o repo em `/opt/dindin`.
+4. **Setup da instância** (via SSH): copiar e rodar `infra/scripts/setup-host.sh` — instala Docker, cria swap de 2GB, clona o repo em `/opt/guaranin`.
 5. **Configurar `.env`**: `cp infra/.env.prod.example infra/.env` na instância e preencher com valores reais (senhas, `JWT_SECRET` gerado com `openssl rand -base64 48`, `DOMAIN`, `ACME_EMAIL`).
 6. **Subir a stack pela primeira vez** (na instância): `docker compose -f infra/docker-compose.prod.yml --env-file infra/.env up -d`.
 7. **Bucket S3 de backup**: criar o bucket, depois rodar `./infra/scripts/configure-s3-lifecycle.sh <bucket>` uma vez (expira objetos com 30 dias).
-8. **Agendar backup**: `crontab -e` na instância → `0 3 * * * /opt/dindin/infra/scripts/backup.sh >> /var/log/dindin-backup.log 2>&1`.
+8. **Agendar backup**: `crontab -e` na instância → `0 3 * * * /opt/guaranin/infra/scripts/backup.sh >> /var/log/guaranin-backup.log 2>&1`.
 9. **Credenciais AWS na instância**: `aws configure` (ou IAM role anexada à instância, preferível) com permissão `s3:PutObject` no bucket de backup.
 10. **Secrets no GitHub** (para o workflow de deploy funcionar), rodados pelo próprio usuário — nunca cole chave privada SSH em uma sessão de IA:
     ```

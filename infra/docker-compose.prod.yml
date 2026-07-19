@@ -1,40 +1,40 @@
-name: dindin-prod
+name: guaranin-prod
 
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: dindin-postgres-prod
+    container_name: guaranin-postgres-prod
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-dindin}
-      POSTGRES_USER: ${POSTGRES_USER:-dindin}
+      POSTGRES_DB: ${POSTGRES_DB:-guaranin}
+      POSTGRES_USER: ${POSTGRES_USER:-guaranin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dindin} -d ${POSTGRES_DB:-dindin}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-guaranin} -d ${POSTGRES_DB:-guaranin}"]
       interval: 5s
       timeout: 3s
       retries: 10
 
   api:
-    image: ${API_IMAGE:-ghcr.io/jokerfoxyy/dindin-api:latest}
-    container_name: dindin-api-prod
+    image: ${API_IMAGE:-ghcr.io/jokerfoxyy/guaranin-api:latest}
+    container_name: guaranin-api-prod
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-dindin}
-      DB_USER: ${POSTGRES_USER:-dindin}
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-guaranin}
+      DB_USER: ${POSTGRES_USER:-guaranin}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       COOKIE_SECURE: "true"
 
   web:
-    image: ${WEB_IMAGE:-ghcr.io/jokerfoxyy/dindin-web:latest}
-    container_name: dindin-web-prod
+    image: ${WEB_IMAGE:-ghcr.io/jokerfoxyy/guaranin-web:latest}
+    container_name: guaranin-web-prod
     restart: unless-stopped
     depends_on:
       - api
