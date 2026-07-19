@@ -15,7 +15,7 @@ import {
   TransactionType
 } from './transaction.models';
 
-const LAST_ACCOUNT_KEY = 'dindin.lastAccount';
+const LAST_ACCOUNT_KEY = 'guaranin.lastAccount';
 
 @Component({
   selector: 'app-transactions',

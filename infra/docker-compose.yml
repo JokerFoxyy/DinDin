@@ -1,19 +1,19 @@
-name: dindin
+name: guaranin
 
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: dindin-postgres
+    container_name: guaranin-postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-dindin}
-      POSTGRES_USER: ${POSTGRES_USER:-dindin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dindin-dev}
+      POSTGRES_DB: ${POSTGRES_DB:-guaranin}
+      POSTGRES_USER: ${POSTGRES_USER:-guaranin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-guaranin-dev}
     ports:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dindin} -d ${POSTGRES_DB:-dindin}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-guaranin} -d ${POSTGRES_DB:-guaranin}"]
       interval: 5s
       timeout: 3s
       retries: 10
