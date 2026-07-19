@@ -27,4 +27,8 @@ cd api
 
 Qualidade: cobertura mínima de 90% de linha (JaCoCo, quebra o build no `verify`).
 
+## Deploy em produção
+
+Ver [infra/README.md](infra/README.md) para o passo a passo (Lightsail + Docker Compose + Caddy com TLS automático).
+
 Roadmap e arquitetura: [docs/PLANO-SDD.md](docs/PLANO-SDD.md)
