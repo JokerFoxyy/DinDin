@@ -1,0 +1,26 @@
+name: Deploy
+
+# Disparo manual (não a cada merge em main) — deploy em produção é uma ação
+# deliberada, feita quando quem está de olho decide que é hora de subir.
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd /opt/guaranin
+            git pull origin main
+            docker compose -f infra/docker-compose.prod.yml --env-file infra/.env pull
+            docker compose -f infra/docker-compose.prod.yml --env-file infra/.env up -d --remove-orphans
+            docker image prune -f

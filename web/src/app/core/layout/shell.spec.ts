@@ -24,7 +24,7 @@ describe('Shell', () => {
     const spy = jasmine.createSpyObj<AuthService>('AuthService',
       ['loadCurrentUser', 'logout', 'clearSession']);
     authService = Object.assign(spy, { currentUser: signal<UserResponse | null>(null) });
-    authService.loadCurrentUser.and.returnValue(of({ id: 'uuid-1', email: 'victor@dindin.com' }));
+    authService.loadCurrentUser.and.returnValue(of({ id: 'uuid-1', email: 'victor@guaranin.com' }));
     authService.logout.and.returnValue(of(void 0));
 
     budgetService = jasmine.createSpyObj<BudgetService>('BudgetService', ['alerts']);
@@ -64,10 +64,10 @@ describe('Shell', () => {
   });
 
   it('should show the user email when loaded', () => {
-    authService.currentUser.set({ id: 'uuid-1', email: 'victor@dindin.com' });
+    authService.currentUser.set({ id: 'uuid-1', email: 'victor@guaranin.com' });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.user-email').textContent).toContain('victor@dindin.com');
+    expect(fixture.nativeElement.querySelector('.user-email').textContent).toContain('victor@guaranin.com');
   });
 
   it('should not show a budget alert badge when there are no alerts', () => {
@@ -83,6 +83,45 @@ describe('Shell', () => {
 
     expect(component.budgetAlertCount()).toBe(1);
     expect(fixture.nativeElement.querySelector('.alert-badge').textContent).toContain('1');
+  });
+
+  it('should toggle the mobile sidebar open and closed', () => {
+    fixture.detectChanges();
+
+    expect(component.sidebarOpen()).toBeFalse();
+
+    component.toggleSidebar();
+    fixture.detectChanges();
+    expect(component.sidebarOpen()).toBeTrue();
+    expect(fixture.nativeElement.querySelector('aside').classList).toContain('open');
+
+    component.toggleSidebar();
+    expect(component.sidebarOpen()).toBeFalse();
+  });
+
+  it('should close the sidebar when a nav item is clicked', () => {
+    fixture.detectChanges();
+    component.toggleSidebar();
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('.nav-item').click();
+
+    expect(component.sidebarOpen()).toBeFalse();
+  });
+
+  it('should close the sidebar when the backdrop is clicked', () => {
+    component.toggleSidebar();
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('.sidebar-backdrop').click();
+
+    expect(component.sidebarOpen()).toBeFalse();
+  });
+
+  it('should not render the backdrop when the sidebar is closed', () => {
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.sidebar-backdrop')).toBeNull();
   });
 
   it('should logout and navigate to login when logout is clicked', () => {

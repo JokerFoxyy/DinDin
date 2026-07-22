@@ -1,6 +1,6 @@
-# DinDin — Plano SDD de Implementação
+# Guaranin — Plano SDD de Implementação
 
-> **Fonte:** `DinDin/spec-app-financeiro.md` + `DinDin/prototipo-dashboard.html`
+> **Fonte:** `DinDin/spec-app-financeiro.md` + `DinDin/prototipo-dashboard.html` (pasta local fora do repo git, nome não relacionado à marca)
 > **Criado em:** 2026-07-07
 > **Decisão do usuário:** Frontend em **Angular** (a spec original sugeria React) e APIs em **Java**.
 > Este arquivo é o documento-mestre. Cada sessão ganhará seu próprio SDD detalhado em
@@ -30,9 +30,9 @@
 ## 2. Estrutura do monorepo
 
 ```
-DinDin/                  (repo git)
+Guaranin/                  (repo git)
 ├── api/                    Spring Boot (Java 21, Maven)
-│   └── src/main/java/com/dindin/api/
+│   └── src/main/java/com/guaranin/api/
 │       ├── auth/  account/  category/  transaction/  invoice/
 │       ├── recurring/  budget/  goal/  investment/  dashboard/  importer/
 │       └── common/         (config, security, erros, money)
@@ -156,12 +156,12 @@ Pré-req: #9.
 Tasks: (1) endpoint de export (POI); (2) botão de export com filtros aplicados; (3) verificação. 259 testes API + 209 testes web (cobertura ≥90/80/90/90); verificado com arquivos reais (CSV e xlsx).
 Pré-req: #7.
 
-**#20 — PWA**
-Tasks: (1) `@angular/pwa` (manifest + service worker); (2) ajustes responsive mobile (sidebar colapsável, já esboçado no protótipo); (3) verificação (instalável no celular).
+**#20 — PWA** ✅ CONCLUÍDA (2026-07-17 — SDD: `docs/session-20-pwa/SDD.md`)
+Tasks: (1) `@angular/pwa` (manifest + service worker); (2) ajustes responsive mobile (sidebar vira drawer off-canvas com botão hambúrguer abaixo de 700px); (3) verificação. 213 testes web (cobertura ≥90/80/90/90); verificado end-to-end com service worker registrado, manifest servido e drawer mobile funcionando (login real + viewport mobile no browser).
 Pré-req: #11.
 
-**#21 — Deploy AWS**
-Tasks: (1) Dockerfiles ARM64 (JVM tunada `-XX:MaxRAMPercentage=50`) + compose de produção com Caddy (TLS + proxy `/api`); (2) Lightsail US$5 (decisão da spec; alternativa EC2 t4g.micro + Savings Plan); (3) backup pg_dump → S3 com lifecycle 30 dias + swap 2 GB; (4) GitHub Actions deploy via SSH; (5) verificação end-to-end em produção.
+**#21 — Deploy AWS** ✅ CÓDIGO CONCLUÍDO (2026-07-18 — SDD: `docs/session-21-deploy-aws/SDD.md`) — **provisionamento real pendente do usuário**
+Tasks: (1) `web/Dockerfile` + `Caddyfile` (Caddy serve o estático do Angular e faz proxy `/api/*`; `api/Dockerfile` já existia da sessão #4) + `infra/docker-compose.prod.yml`; (2) **Lightsail US$5/mês** (decisão do usuário — logo, imagens `linux/amd64`, não ARM); (3) `infra/scripts/backup.sh` (pg_dump → S3, lifecycle 30 dias) + `setup-host.sh` (swap 2GB); (4) `.github/workflows/deploy.yml` (SSH manual via `workflow_dispatch`) + job `docker` novo em `ci-web.yml`; (5) smoke test local do compose completo (proxy, fallback SPA, healthcheck) — verificação end-to-end **em produção real** ainda pendente: requer o usuário comprar domínio, criar a instância Lightsail e configurar os secrets do GitHub (passo a passo em `infra/README.md`).
 Pré-req: #4 + MVP estável (recomendado após #12).
 
 ### Fase 4 — Open Finance
@@ -170,6 +170,11 @@ Pré-req: #4 + MVP estável (recomendado após #12).
 Ideia inicial: conectar contas de banco via agregador certificado em Open Finance (Pluggy ou Belvo) para puxar extratos/saldos automaticamente, reduzindo lançamento manual.
 Tasks a refinar: (1) avaliar Pluggy vs. Belvo (custo por conta conectada, cobertura de bancos, free tier); (2) fluxo de consentimento OAuth do usuário com o banco (conexão, expiração/reautenticação de token); (3) endpoint/job de sincronização periódica de extratos → mapeamento para `transactions` (evitar duplicidade com lançamentos manuais); (4) UI de gerenciamento de conexões bancárias; (5) verificação end-to-end com conta de banco real (sandbox do agregador).
 Pré-req: Fase 3 completa (MVP estável + deploy). Risco/trade-off a decidir: custo recorrente por conta conectada escala com base de usuários — mais vantajoso enquanto uso é pessoal (poucas contas) do que se o produto virar SaaS multiusuário sem repasse desse custo.
+
+**#23 — Identidade visual (logo + marca + paleta oficial)** 🟡 PARCIAL (2026-07-19 — SDD do rename: `docs/session-23-rebrand-guaranin/SDD.md`)
+**Feito:** rebranding completo de nome — "DinDin" → "**Guaranin**" (pacote Java, repositório GitHub, manifest PWA, cookies, docs) — domínio próprio já comprado pelo usuário.
+**Ainda falta:** (1) definir características do logo de verdade (símbolo vs. wordmark, variações claro/escuro/monocromático — hoje é só texto "Guara"+"nin" em duas cores via CSS, sem símbolo/ícone próprio); (2) paleta de cores oficial documentada (hoje ainda é o tema escuro genérico `--bg #0d1117`/`--accent #4f8ef7` herdado, usado ad-hoc); (3) ícones reais do manifest PWA (ainda é o placeholder padrão do Angular, sessão #20) e favicon; (4) aplicar a paleta definida nos componentes se houver divergência.
+Pré-req: nenhuma dependência técnica — pode rodar em paralelo a qualquer sessão; faz sentido antes de #22 (Open Finance) se o app for ganhar visibilidade externa (telas de consentimento OAuth do banco, por exemplo, aparecem para o usuário).
 
 ### Fase 5 — Futuro (sem sessão planejada ainda)
 

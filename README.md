@@ -1,4 +1,4 @@
-# DinDin
+# Guaranin
 
 App de gestão financeira pessoal — transações, contas/cartões com fatura, fixos recorrentes, orçamentos, dashboard, investimentos e metas.
 
@@ -26,5 +26,9 @@ cd api
 - Swagger: http://localhost:8080/api/swagger-ui.html
 
 Qualidade: cobertura mínima de 90% de linha (JaCoCo, quebra o build no `verify`).
+
+## Deploy em produção
+
+Ver [infra/README.md](infra/README.md) para o passo a passo (Lightsail + Docker Compose + Caddy com TLS automático).
 
 Roadmap e arquitetura: [docs/PLANO-SDD.md](docs/PLANO-SDD.md)
