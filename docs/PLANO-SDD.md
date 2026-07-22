@@ -1,6 +1,6 @@
-# DinDin — Plano SDD de Implementação
+# Guaranin — Plano SDD de Implementação
 
-> **Fonte:** `DinDin/spec-app-financeiro.md` + `DinDin/prototipo-dashboard.html`
+> **Fonte:** `DinDin/spec-app-financeiro.md` + `DinDin/prototipo-dashboard.html` (pasta local fora do repo git, nome não relacionado à marca)
 > **Criado em:** 2026-07-07
 > **Decisão do usuário:** Frontend em **Angular** (a spec original sugeria React) e APIs em **Java**.
 > Este arquivo é o documento-mestre. Cada sessão ganhará seu próprio SDD detalhado em
@@ -30,9 +30,9 @@
 ## 2. Estrutura do monorepo
 
 ```
-DinDin/                  (repo git)
+Guaranin/                  (repo git)
 ├── api/                    Spring Boot (Java 21, Maven)
-│   └── src/main/java/com/dindin/api/
+│   └── src/main/java/com/guaranin/api/
 │       ├── auth/  account/  category/  transaction/  invoice/
 │       ├── recurring/  budget/  goal/  investment/  dashboard/  importer/
 │       └── common/         (config, security, erros, money)
@@ -171,9 +171,9 @@ Ideia inicial: conectar contas de banco via agregador certificado em Open Financ
 Tasks a refinar: (1) avaliar Pluggy vs. Belvo (custo por conta conectada, cobertura de bancos, free tier); (2) fluxo de consentimento OAuth do usuário com o banco (conexão, expiração/reautenticação de token); (3) endpoint/job de sincronização periódica de extratos → mapeamento para `transactions` (evitar duplicidade com lançamentos manuais); (4) UI de gerenciamento de conexões bancárias; (5) verificação end-to-end com conta de banco real (sandbox do agregador).
 Pré-req: Fase 3 completa (MVP estável + deploy). Risco/trade-off a decidir: custo recorrente por conta conectada escala com base de usuários — mais vantajoso enquanto uso é pessoal (poucas contas) do que se o produto virar SaaS multiusuário sem repasse desse custo.
 
-**#23 — Identidade visual (logo + marca + paleta oficial)** (sessão formal, a refinar quando a Fase 3 terminar)
-Ideia inicial: hoje o "visual" do DinDin é o tema escuro genérico (`--bg #0d1117`, `--accent #4f8ef7`) e os ícones do manifest PWA (sessão #20) são o placeholder padrão do Angular — falta uma identidade própria antes de expor o app publicamente ou de qualquer material de divulgação.
-Tasks a refinar: (1) definir características do logo (símbolo vs. wordmark, uso do nome "DinDin", variações claro/escuro/monocromático); (2) paleta de cores oficial (primária, secundária, semânticas de sucesso/erro/alerta — hoje usadas ad-hoc via `--accent`/`--red`/`--green` no CSS) documentada em um único lugar de referência; (3) gerar os ícones reais do manifest PWA (substituindo o placeholder da sessão #20) e o favicon; (4) aplicar a paleta/tema nos componentes existentes se houver divergência do que já está em produção.
+**#23 — Identidade visual (logo + marca + paleta oficial)** 🟡 PARCIAL (2026-07-19 — SDD do rename: `docs/session-23-rebrand-guaranin/SDD.md`)
+**Feito:** rebranding completo de nome — "DinDin" → "**Guaranin**" (pacote Java, repositório GitHub, manifest PWA, cookies, docs) — domínio próprio já comprado pelo usuário.
+**Ainda falta:** (1) definir características do logo de verdade (símbolo vs. wordmark, variações claro/escuro/monocromático — hoje é só texto "Guara"+"nin" em duas cores via CSS, sem símbolo/ícone próprio); (2) paleta de cores oficial documentada (hoje ainda é o tema escuro genérico `--bg #0d1117`/`--accent #4f8ef7` herdado, usado ad-hoc); (3) ícones reais do manifest PWA (ainda é o placeholder padrão do Angular, sessão #20) e favicon; (4) aplicar a paleta definida nos componentes se houver divergência.
 Pré-req: nenhuma dependência técnica — pode rodar em paralelo a qualquer sessão; faz sentido antes de #22 (Open Finance) se o app for ganhar visibilidade externa (telas de consentimento OAuth do banco, por exemplo, aparecem para o usuário).
 
 ### Fase 5 — Futuro (sem sessão planejada ainda)

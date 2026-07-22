@@ -24,7 +24,7 @@ describe('Shell', () => {
     const spy = jasmine.createSpyObj<AuthService>('AuthService',
       ['loadCurrentUser', 'logout', 'clearSession']);
     authService = Object.assign(spy, { currentUser: signal<UserResponse | null>(null) });
-    authService.loadCurrentUser.and.returnValue(of({ id: 'uuid-1', email: 'victor@dindin.com' }));
+    authService.loadCurrentUser.and.returnValue(of({ id: 'uuid-1', email: 'victor@guaranin.com' }));
     authService.logout.and.returnValue(of(void 0));
 
     budgetService = jasmine.createSpyObj<BudgetService>('BudgetService', ['alerts']);
@@ -64,10 +64,10 @@ describe('Shell', () => {
   });
 
   it('should show the user email when loaded', () => {
-    authService.currentUser.set({ id: 'uuid-1', email: 'victor@dindin.com' });
+    authService.currentUser.set({ id: 'uuid-1', email: 'victor@guaranin.com' });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.user-email').textContent).toContain('victor@dindin.com');
+    expect(fixture.nativeElement.querySelector('.user-email').textContent).toContain('victor@guaranin.com');
   });
 
   it('should not show a budget alert badge when there are no alerts', () => {
