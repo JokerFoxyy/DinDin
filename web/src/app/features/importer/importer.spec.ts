@@ -5,9 +5,10 @@ import { of, throwError } from 'rxjs';
 import { Importer } from './importer';
 import { ImportService } from './import.service';
 import { AccountService } from '../settings/account.service';
+import { CardService } from '../settings/card.service';
 import { CategoryService } from '../settings/category.service';
 import { ImportCommitResult, ImportPreview } from './import.models';
-import { Account, Category } from '../settings/settings.models';
+import { Account, Card, Category } from '../settings/settings.models';
 
 describe('Importer', () => {
   let fixture: ComponentFixture<Importer>;
@@ -15,7 +16,10 @@ describe('Importer', () => {
   let importService: jasmine.SpyObj<ImportService>;
 
   const accounts: Account[] = [
-    { id: 'a1', name: 'Uniclass', type: 'CHECKING', closingDay: null, dueDay: null }
+    { id: 'a1', name: 'Uniclass', type: 'CHECKING' }
+  ];
+  const cards: Card[] = [
+    { id: 'k1', name: 'Nubank', accountId: 'a1', accountName: 'Uniclass', closingDay: 28, dueDay: 7 }
   ];
   const categories: Category[] = [
     { id: 'c1', name: 'Mercado', icon: '🛒', color: '#3fb950', kind: 'EXPENSE' }
@@ -46,6 +50,8 @@ describe('Importer', () => {
     importService.commit.and.returnValue(of(commitResult));
     const accountService = jasmine.createSpyObj<AccountService>('AccountService', ['list']);
     accountService.list.and.returnValue(of(accounts));
+    const cardService = jasmine.createSpyObj<CardService>('CardService', ['list']);
+    cardService.list.and.returnValue(of(cards));
     const categoryService = jasmine.createSpyObj<CategoryService>('CategoryService', ['list']);
     categoryService.list.and.returnValue(of(categories));
 
@@ -54,6 +60,7 @@ describe('Importer', () => {
       providers: [
         { provide: ImportService, useValue: importService },
         { provide: AccountService, useValue: accountService },
+        { provide: CardService, useValue: cardService },
         { provide: CategoryService, useValue: categoryService }
       ]
     }).compileComponents();
@@ -76,7 +83,10 @@ describe('Importer', () => {
 
     expect(importService.preview).toHaveBeenCalledWith(jasmine.any(File), 2026);
     expect(component.preview()?.rows.length).toBe(1);
-    expect(component.accountMappings()).toEqual([{ name: 'Nubank', mode: 'create', existingId: '', createType: 'CHECKING' }]);
+    expect(component.accountMappings()).toEqual([{
+      name: 'Nubank', mode: 'create-account', existingAccountId: '', existingCardId: '',
+      createType: 'CHECKING', cardAccountId: 'a1', cardClosingDay: 1, cardDueDay: 10
+    }]);
     expect(component.categoryMappings()).toEqual([{ name: 'Assinaturas', mode: 'create', existingId: '', createKind: 'EXPENSE' }]);
   });
 
@@ -84,26 +94,61 @@ describe('Importer', () => {
     component.onFileSelected(fakeFileEvent());
     component.analyze();
 
-    component.updateAccountMapping(0, { mode: 'existing', existingId: 'a1' });
+    component.updateAccountMapping(0, { mode: 'existing-account', existingAccountId: 'a1' });
 
-    expect(component.accountMappings()[0].mode).toBe('existing');
-    expect(component.accountMappings()[0].existingId).toBe('a1');
+    expect(component.accountMappings()[0].mode).toBe('existing-account');
+    expect(component.accountMappings()[0].existingAccountId).toBe('a1');
   });
 
-  it('should confirm the import with the resolved mapping', () => {
+  it('should confirm the import resolving a name to an existing account', () => {
     component.onFileSelected(fakeFileEvent());
     component.analyze();
-    component.updateAccountMapping(0, { mode: 'existing', existingId: 'a1' });
+    component.updateAccountMapping(0, { mode: 'existing-account', existingAccountId: 'a1' });
     component.updateCategoryMapping(0, { mode: 'existing', existingId: 'c1' });
 
     component.confirm();
 
     expect(importService.commit).toHaveBeenCalledWith(jasmine.any(File), 2026, {
-      accounts: { Nubank: { existingAccountId: 'a1', createType: null } },
+      accounts: { Nubank: { existingAccountId: 'a1', existingCardId: null, createType: null, createCard: null } },
       categories: { Assinaturas: { existingCategoryId: 'c1', createKind: null } }
     });
     expect(component.result()).toEqual(commitResult);
     expect(component.preview()).toBeNull();
+  });
+
+  it('should confirm the import creating a new card linked to an account', () => {
+    component.onFileSelected(fakeFileEvent());
+    component.analyze();
+    component.updateAccountMapping(0, {
+      mode: 'create-card', cardAccountId: 'a1', cardClosingDay: 28, cardDueDay: 7
+    });
+    component.updateCategoryMapping(0, { mode: 'existing', existingId: 'c1' });
+
+    component.confirm();
+
+    expect(importService.commit).toHaveBeenCalledWith(jasmine.any(File), 2026, {
+      accounts: {
+        Nubank: {
+          existingAccountId: null, existingCardId: null, createType: null,
+          createCard: { accountId: 'a1', closingDay: 28, dueDay: 7 }
+        }
+      },
+      categories: { Assinaturas: { existingCategoryId: 'c1', createKind: null } }
+    });
+  });
+
+  it('should confirm the import resolving a name to an existing card', () => {
+    component.onFileSelected(fakeFileEvent());
+    component.analyze();
+    component.updateAccountMapping(0, { mode: 'existing-card', existingCardId: 'k1' });
+    component.updateCategoryMapping(0, { mode: 'existing', existingId: 'c1' });
+
+    component.confirm();
+
+    expect(importService.commit).toHaveBeenCalledWith(jasmine.any(File), 2026, {
+      accounts: { Nubank: { existingAccountId: null, existingCardId: 'k1', createType: null, createCard: null } },
+      categories: { Assinaturas: { existingCategoryId: 'c1', createKind: null } }
+    });
   });
 
   it('should show backend error message when preview fails', () => {

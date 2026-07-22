@@ -40,6 +40,15 @@ describe('TransactionService', () => {
     request.flush({ content: [], page: 2, size: 10, totalElements: 0, totalPages: 0 });
   });
 
+  it('should include the cardId param when filtering by card', () => {
+    service.list('2026-07', { cardId: 'card1' }).subscribe();
+
+    const request = httpMock.expectOne((r) => r.url === '/api/v1/transactions');
+    expect(request.request.params.get('cardId')).toBe('card1');
+    expect(request.request.params.has('accountId')).toBeFalse();
+    request.flush({ content: [], page: 0, size: 50, totalElements: 0, totalPages: 0 });
+  });
+
   it('should include q and tag params when provided', () => {
     service.list('2026-07', { q: 'padaria', tag: 'viagem' }).subscribe();
 

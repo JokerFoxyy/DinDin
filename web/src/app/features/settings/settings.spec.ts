@@ -18,12 +18,15 @@ describe('Settings', () => {
     fixture.detectChanges();
 
     const httpMock = TestBed.inject(HttpTestingController);
-    httpMock.expectOne('/api/v1/accounts').flush([]);
+    // accounts-panel e cards-panel carregam contas; cards-panel carrega cartões; categories-panel carrega categorias
+    httpMock.match('/api/v1/accounts').forEach((req) => req.flush([]));
+    httpMock.expectOne('/api/v1/cards').flush([]);
     httpMock.expectOne('/api/v1/categories').flush([]);
 
     const element: HTMLElement = fixture.nativeElement;
     expect(element.querySelector('h1')?.textContent).toContain('Configurações');
     expect(element.querySelector('app-accounts-panel')).not.toBeNull();
+    expect(element.querySelector('app-cards-panel')).not.toBeNull();
     expect(element.querySelector('app-categories-panel')).not.toBeNull();
     httpMock.verify();
   });
