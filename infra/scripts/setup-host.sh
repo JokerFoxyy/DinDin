@@ -24,15 +24,15 @@ if [ ! -f /swapfile ]; then
 fi
 
 echo "== Repositório =="
-if [ ! -d /opt/dindin ]; then
-  sudo mkdir -p /opt/dindin
-  sudo chown "$USER":"$USER" /opt/dindin
-  git clone https://github.com/JokerFoxyy/DinDin.git /opt/dindin
+if [ ! -d /opt/guaranin ]; then
+  sudo mkdir -p /opt/guaranin
+  sudo chown "$USER":"$USER" /opt/guaranin
+  git clone https://github.com/JokerFoxyy/Guaranin.git /opt/guaranin
 fi
 
 echo
 echo "Próximos passos manuais:"
-echo "1. cp /opt/dindin/infra/.env.prod.example /opt/dindin/infra/.env e preencher com valores reais"
-echo "2. cd /opt/dindin && docker compose -f infra/docker-compose.prod.yml --env-file infra/.env up -d"
+echo "1. cp /opt/guaranin/infra/.env.prod.example /opt/guaranin/infra/.env e preencher com valores reais"
+echo "2. cd /opt/guaranin && docker compose -f infra/docker-compose.prod.yml --env-file infra/.env up -d"
 echo "3. ./infra/scripts/configure-s3-lifecycle.sh <bucket>  (uma vez, após criar o bucket)"
-echo "4. Agendar infra/scripts/backup.sh no cron (ex.: crontab -e -> 0 3 * * * /opt/dindin/infra/scripts/backup.sh)"
+echo "4. Agendar infra/scripts/backup.sh no cron (ex.: crontab -e -> 0 3 * * * /opt/guaranin/infra/scripts/backup.sh)"
