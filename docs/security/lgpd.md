@@ -32,7 +32,7 @@ Não coletamos: CPF, telefone, endereço, dado de cartão real (só metadados: n
 ## 4. Princípios aplicados (Art. 6º)
 
 - **Minimização:** coletamos só e-mail + dados que o próprio usuário lança. Sem rastreadores, sem analytics de terceiros, sem compartilhamento.
-- **Segurança (Art. 46):** senha em BCrypt; sessão em cookie httpOnly; TLS em trânsito (#21); acesso escopado por usuário; segredos fora do código. Ver `threat-model-stride.md`.
+- **Segurança (Art. 46):** senha em BCrypt; sessão em cookie httpOnly; TLS em trânsito (#21); acesso escopado por usuário; segredos fora do código. Modelo de ameaças STRIDE mantido fora do repo público, em `D:\Docs\Guaranin\threat-model-stride.md`.
 - **Necessidade/finalidade:** cada dado tem finalidade declarada acima; nada é usado para outro fim.
 - **Retenção:** dados existem enquanto a conta existir; exclusão da conta remove tudo. Refresh tokens expiram em 30 dias e são limpos.
 

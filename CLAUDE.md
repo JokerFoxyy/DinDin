@@ -208,7 +208,7 @@ Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/post
 
 **Hardening:** rate limiting em login/register (429; `LoginRateLimiter` in-memory por IP+email); BCrypt strength 12; senha exige ≥10 chars com letra e número; `SecretsValidator` **falha o startup em profile `prod`** se `JWT_SECRET`/`DB_PASSWORD` forem os defaults de dev; security headers (frame deny, referrer, HSTS); Swagger/api-docs desligados em prod (`application-prod.yml`, `cookie-secure: true`).
 
-**CSRF:** desabilitado de propósito — a defesa é o cookie `SameSite=Strict` (não vai em requisição cross-site) numa API JSON same-origin. Ver `docs/security/threat-model-stride.md`.
+**CSRF:** desabilitado de propósito — a defesa é o cookie `SameSite=Strict` (não vai em requisição cross-site) numa API JSON same-origin. Modelo de ameaças STRIDE completo mantido fora do repo público (não expor mapa de ataque em app financeiro com usuários reais), em `D:\Docs\Guaranin\threat-model-stride.md`.
 
 **LGPD:** `GET /api/v1/account/export` (portabilidade, baixa JSON) e `DELETE /api/v1/account` (elimina usuário + todos os dados vinculados, em ordem FK-safe). No front, "zona de privacidade" em Configurações. Ver `docs/security/lgpd.md`.
 
