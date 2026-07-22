@@ -4,14 +4,14 @@ server:
 
 spring:
   application:
-    name: guaranin-api
+    name: poupito-api
   threads:
     virtual:
       enabled: true
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5433/guaranin}
-    username: ${DB_USER:guaranin}
-    password: ${DB_PASSWORD:guaranin-dev}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/poupito}
+    username: ${DB_USER:poupito}
+    password: ${DB_PASSWORD:poupito-dev}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -23,7 +23,7 @@ spring:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:guaranin-dev-secret-do-not-use-in-production-0123456789}
+    secret: ${JWT_SECRET:poupito-dev-secret-do-not-use-in-production-0123456789}
     access-expiration: ${JWT_ACCESS_EXPIRATION:PT15M}
     refresh-expiration: ${JWT_REFRESH_EXPIRATION:P30D}
   security:

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## O que é este projeto
 
-Guaranin: app de gestão financeira pessoal que substitui a Planilha_Gastos_2026 — transações, contas/cartões com fatura, fixos recorrentes, orçamentos, dashboard, investimentos e metas. Uso pessoal com potencial de virar SaaS.
+Poupito: app de gestão financeira pessoal que substitui a Planilha_Gastos_2026 — transações, contas/cartões com fatura, fixos recorrentes, orçamentos, dashboard, investimentos e metas. Uso pessoal com potencial de virar SaaS.
 
 Antes de implementar qualquer coisa, leia:
 
@@ -90,7 +90,7 @@ npm run build:prod
 
 ## Frontend (sessão #3)
 
-Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/postcss` (`.postcssrc.json`); tema dark do protótipo em `src/styles.css` (variáveis CSS globais + classes `.panel`, `.card`, `.btn`, `.tag`...). Estrutura: `core/auth` (AuthService com signals, interceptor funcional, `authGuard`), `core/layout/shell` (sidebar), `features/<nome>` (uma pasta por página, lazy via `loadComponent`), `shared/`. API sempre por caminho relativo `/api/...` — em dev o `proxy.conf.json` encaminha para `localhost:8080` (não usar URL absoluta nem CORS). Token JWT em `localStorage` (`guaranin.token`).
+Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/postcss` (`.postcssrc.json`); tema dark do protótipo em `src/styles.css` (variáveis CSS globais + classes `.panel`, `.card`, `.btn`, `.tag`...). Estrutura: `core/auth` (AuthService com signals, interceptor funcional, `authGuard`), `core/layout/shell` (sidebar), `features/<nome>` (uma pasta por página, lazy via `loadComponent`), `shared/`. API sempre por caminho relativo `/api/...` — em dev o `proxy.conf.json` encaminha para `localhost:8080` (não usar URL absoluta nem CORS). Token JWT em `localStorage` (`poupito.token`).
 
 **Gotcha do Karma:** o `karma.conf.js` referenciado pelo builder `@angular/build:karma` **substitui** a config default em vez de mesclar — se recriar, use `ng generate config karma` e edite (senão os testes quebram com "describe is not defined"). Os thresholds de cobertura (90/80/90/90) vivem no `coverageReporter.check` desse arquivo.
 
@@ -185,8 +185,8 @@ Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/post
 
 ## PWA (sessão #20)
 
-- `ng add @angular/pwa` gerou `manifest.webmanifest` (nome/tema "Guaranin", `#0d1117`), `ngsw-config.json` e o registro do service worker via `provideServiceWorker('ngsw-worker.js', { enabled: !isDevMode() })` no `app.config.ts` — **desabilitado em `ng serve` normal**, só ativa em build de produção (`ng build --configuration production` ou `ng serve --configuration production`).
-- Ícones do manifest são o placeholder padrão do schematic (logo do Angular) — ainda não existe um asset de marca próprio do Guaranin; pendência conhecida.
+- `ng add @angular/pwa` gerou `manifest.webmanifest` (nome/tema "Poupito", `#0d1117`), `ngsw-config.json` e o registro do service worker via `provideServiceWorker('ngsw-worker.js', { enabled: !isDevMode() })` no `app.config.ts` — **desabilitado em `ng serve` normal**, só ativa em build de produção (`ng build --configuration production` ou `ng serve --configuration production`).
+- Ícones do manifest são o placeholder padrão do schematic (logo do Angular) — ainda não existe um asset de marca próprio do Poupito; pendência conhecida.
 - `Shell`: sidebar vira **drawer off-canvas** abaixo de 700px (`transform: translateX(-100%)`, botão hambúrguer fixo, backdrop semi-transparente) — fecha sozinha ao navegar para outra rota ou ao clicar no backdrop. Entre 701–900px mantém o comportamento anterior (barra horizontal rolável, sessão anterior a esta). Estado (`sidebarOpen` signal) não persiste — sempre começa fechada.
 
 ## Deploy AWS (sessão #21)
@@ -200,15 +200,15 @@ Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/post
 ## Auth & Segurança (sessões #2 e #S)
 
 **Modelo de sessão (reescrito na #S):** cookies httpOnly, não JWT no localStorage.
-- `POST /api/v1/auth/register` (201) e `/login` (200) setam **dois cookies httpOnly + SameSite=Strict** (`guaranin_at` = access JWT 15min; `guaranin_rt` = refresh opaco 30d) e retornam só `{id,email}` — **nunca o token no corpo**.
+- `POST /api/v1/auth/register` (201) e `/login` (200) setam **dois cookies httpOnly + SameSite=Strict** (`poupito_at` = access JWT 15min; `poupito_rt` = refresh opaco 30d) e retornam só `{id,email}` — **nunca o token no corpo**.
 - `POST /auth/refresh` rotaciona o refresh token (o antigo é revogado); `POST /auth/logout` revoga no banco e limpa cookies; `GET /auth/me` retorna `{id,email}`.
-- `JwtAuthFilter` lê o access token do cookie `guaranin_at` (fallback `Authorization: Bearer` para clientes de API/testes) e popula `AuthenticatedUser(id,email)` (via `@AuthenticationPrincipal`).
+- `JwtAuthFilter` lê o access token do cookie `poupito_at` (fallback `Authorization: Bearer` para clientes de API/testes) e popula `AuthenticatedUser(id,email)` (via `@AuthenticationPrincipal`).
 - Refresh token: opaco (256 bits), guardado **como hash SHA-256** em `refresh_tokens`, rotacionado a cada uso, revogável. HS256 do access token assinado com `JWT_SECRET`.
-- **Frontend:** sem token em JS. `AuthService` guarda só a flag booleana `guaranin.authed` (roteamento); interceptor manda `withCredentials` e, em 401, tenta `/refresh` uma vez e repete a requisição, senão desloga.
+- **Frontend:** sem token em JS. `AuthService` guarda só a flag booleana `poupito.authed` (roteamento); interceptor manda `withCredentials` e, em 401, tenta `/refresh` uma vez e repete a requisição, senão desloga.
 
 **Hardening:** rate limiting em login/register (429; `LoginRateLimiter` in-memory por IP+email); BCrypt strength 12; senha exige ≥10 chars com letra e número; `SecretsValidator` **falha o startup em profile `prod`** se `JWT_SECRET`/`DB_PASSWORD` forem os defaults de dev; security headers (frame deny, referrer, HSTS); Swagger/api-docs desligados em prod (`application-prod.yml`, `cookie-secure: true`).
 
-**CSRF:** desabilitado de propósito — a defesa é o cookie `SameSite=Strict` (não vai em requisição cross-site) numa API JSON same-origin. Modelo de ameaças STRIDE completo mantido fora do repo público (não expor mapa de ataque em app financeiro com usuários reais), em `D:\Docs\Guaranin\threat-model-stride.md`.
+**CSRF:** desabilitado de propósito — a defesa é o cookie `SameSite=Strict` (não vai em requisição cross-site) numa API JSON same-origin. Modelo de ameaças STRIDE completo mantido fora do repo público (não expor mapa de ataque em app financeiro com usuários reais), em `D:\Docs\Poupito\threat-model-stride.md`.
 
 **LGPD:** `GET /api/v1/account/export` (portabilidade, baixa JSON) e `DELETE /api/v1/account` (elimina usuário + todos os dados vinculados, em ordem FK-safe). No front, "zona de privacidade" em Configurações. Ver `docs/security/lgpd.md`.
 
@@ -216,7 +216,7 @@ Erros padronizados pelo `GlobalExceptionHandler`: 400 (`fieldErrors`/business), 
 
 ## Git workflow
 
-Remote: `https://github.com/JokerFoxyy/Guaranin.git`. Mesmo fluxo do ContratoIA:
+Remote: `https://github.com/JokerFoxyy/Poupito.git`. Mesmo fluxo do ContratoIA:
 
 1. **Ao iniciar qualquer feature/sessão, criar uma branch a partir de `develop`**: `git checkout develop && git checkout -b feature/<descricao-kebab>` (ex.: `feature/auth-jwt`, `feature/setup-frontend`). Nunca trabalhar direto na `main` ou `develop`.
 2. Commitar na feature branch (commits pequenos e coerentes) e **sempre dar push para o GitHub**: `git push -u origin feature/<descricao-kebab>`. Trabalho não termina sem push — commit local só não conta.

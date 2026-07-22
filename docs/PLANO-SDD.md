@@ -1,4 +1,4 @@
-# Guaranin — Plano SDD de Implementação
+# Poupito — Plano SDD de Implementação
 
 > **Fonte:** `DinDin/spec-app-financeiro.md` + `DinDin/prototipo-dashboard.html` (pasta local fora do repo git, nome não relacionado à marca)
 > **Criado em:** 2026-07-07
@@ -30,9 +30,9 @@
 ## 2. Estrutura do monorepo
 
 ```
-Guaranin/                  (repo git)
+Poupito/                  (repo git)
 ├── api/                    Spring Boot (Java 21, Maven)
-│   └── src/main/java/com/guaranin/api/
+│   └── src/main/java/com/poupito/api/
 │       ├── auth/  account/  category/  transaction/  invoice/
 │       ├── recurring/  budget/  goal/  investment/  dashboard/  importer/
 │       └── common/         (config, security, erros, money)
@@ -171,9 +171,9 @@ Ideia inicial: conectar contas de banco via agregador certificado em Open Financ
 Tasks a refinar: (1) avaliar Pluggy vs. Belvo (custo por conta conectada, cobertura de bancos, free tier); (2) fluxo de consentimento OAuth do usuário com o banco (conexão, expiração/reautenticação de token); (3) endpoint/job de sincronização periódica de extratos → mapeamento para `transactions` (evitar duplicidade com lançamentos manuais); (4) UI de gerenciamento de conexões bancárias; (5) verificação end-to-end com conta de banco real (sandbox do agregador).
 Pré-req: Fase 3 completa (MVP estável + deploy). Risco/trade-off a decidir: custo recorrente por conta conectada escala com base de usuários — mais vantajoso enquanto uso é pessoal (poucas contas) do que se o produto virar SaaS multiusuário sem repasse desse custo.
 
-**#23 — Identidade visual (logo + marca + paleta oficial)** 🟡 PARCIAL (2026-07-19 — SDD do rename: `docs/session-23-rebrand-guaranin/SDD.md`)
-**Feito:** rebranding completo de nome — "DinDin" → "**Guaranin**" (pacote Java, repositório GitHub, manifest PWA, cookies, docs) — domínio próprio já comprado pelo usuário.
-**Ainda falta:** (1) definir características do logo de verdade (símbolo vs. wordmark, variações claro/escuro/monocromático — hoje é só texto "Guara"+"nin" em duas cores via CSS, sem símbolo/ícone próprio); (2) paleta de cores oficial documentada (hoje ainda é o tema escuro genérico `--bg #0d1117`/`--accent #4f8ef7` herdado, usado ad-hoc); (3) ícones reais do manifest PWA (ainda é o placeholder padrão do Angular, sessão #20) e favicon; (4) aplicar a paleta definida nos componentes se houver divergência.
+**#23 — Identidade visual (logo + marca + paleta oficial)** 🟡 PARCIAL (renames: `docs/session-23-rebrand-guaranin/SDD.md` (2026-07-19) e `docs/session-23-rebrand-poupito/SDD.md` (2026-07-22))
+**Feito:** rebranding completo de **nome**. Histórico: "DinDin" → "Guaranin" (2026-07-19) → "**Poupito**" (2026-07-22, nome final — "Guaranin" foi descartado por soar a guaraná/guarani e não comunicar dinheiro; "Poupito", de "poupar", comunica economizar). Cada rename cobriu pacote Java, repositório GitHub, manifest PWA, cookies, infra e docs vivos. Domínio `poupito.com` a registrar pelo usuário (`.com.br` já está com terceiros, sem site ativo — não bloqueia).
+**Ainda falta:** (1) definir características do logo de verdade (símbolo vs. wordmark, variações claro/escuro/monocromático — hoje é só texto "Poup"+"ito" em duas cores via CSS, sem símbolo/ícone próprio); (2) paleta de cores oficial documentada (hoje ainda é o tema escuro genérico `--bg #0d1117`/`--accent #4f8ef7` herdado, usado ad-hoc) — usuário está definindo slogan e cores; (3) ícones reais do manifest PWA (ainda é o placeholder padrão do Angular, sessão #20) e favicon; (4) aplicar a paleta definida nos componentes se houver divergência.
 Pré-req: nenhuma dependência técnica — pode rodar em paralelo a qualquer sessão; faz sentido antes de #22 (Open Finance) se o app for ganhar visibilidade externa (telas de consentimento OAuth do banco, por exemplo, aparecem para o usuário).
 
 ### Fase 5 — Futuro (sem sessão planejada ainda)

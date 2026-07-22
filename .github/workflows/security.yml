@@ -101,12 +101,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: docker build -t guaranin-api:scan api
+        run: docker build -t poupito-api:scan api
 
       - name: Trivy - scan Docker image
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'guaranin-api:scan'
+          image-ref: 'poupito-api:scan'
           format: 'sarif'
           output: 'trivy-image.sarif'
           severity: 'CRITICAL,HIGH'

@@ -10,8 +10,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${ENV_FILE:-$SCRIPT_DIR/../.env}"
-BACKUP_DIR="${BACKUP_DIR:-/opt/guaranin/backups}"
-CONTAINER="${POSTGRES_CONTAINER:-guaranin-postgres-prod}"
+BACKUP_DIR="${BACKUP_DIR:-/opt/poupito/backups}"
+CONTAINER="${POSTGRES_CONTAINER:-poupito-postgres-prod}"
 
 # shellcheck source=/dev/null
 [ -f "$ENV_FILE" ] && source "$ENV_FILE"
@@ -22,7 +22,7 @@ CONTAINER="${POSTGRES_CONTAINER:-guaranin-postgres-prod}"
 
 mkdir -p "$BACKUP_DIR"
 timestamp="$(date +%Y%m%d-%H%M%S)"
-file="$BACKUP_DIR/guaranin-$timestamp.sql.gz"
+file="$BACKUP_DIR/poupito-$timestamp.sql.gz"
 
 docker exec "$CONTAINER" pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" | gzip > "$file"
 
