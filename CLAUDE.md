@@ -44,7 +44,7 @@ docs/   PLANO-SDD.md + SDDs por sessão
 - **Saldos são calculados, nunca armazenados:** `saldo(mês) = saldo(mês−1) + entradas − gastos`.
 - **Toda transação tem conta obrigatória**; lançamento em cartão de crédito vincula-se à fatura (`card_invoice`) do período conforme o `closing_day` do cartão.
 - **Fechamento de fatura:** diferença entre total lançado e valor declarado vira transação `INVOICE_ADJUSTMENT` automática, reduzida conforme o usuário detalha os gastos reais.
-- UI segue o tema dark do protótipo (variáveis CSS `--bg:#0d1117`, `--card:#161b22`, `--accent:#4f8ef7` etc.).
+- UI segue a identidade "Poupito" (sessão #23): tema **claro por padrão + toggle dark/light** via variáveis CSS em `styles.css` (`:root` claro, `:root[data-theme="dark"]` escuro). Paleta: navy `#0F172A`/`#1E293B` (fundo dark + sidebar), verde esmeralda `--accent #059669`/`#10B981` (ação/CTA/positivo), neutras branco/cinza-claro (cards no light). Sidebar é navy nos dois temas (variáveis `--brand-navy*`/`--sidebar-*`, fixas). Cores novas sempre via variável — nunca hex fixo do tema antigo.
 - Textos de UI em pt-BR.
 
 ## Comandos
@@ -90,7 +90,7 @@ npm run build:prod
 
 ## Frontend (sessão #3)
 
-Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/postcss` (`.postcssrc.json`); tema dark do protótipo em `src/styles.css` (variáveis CSS globais + classes `.panel`, `.card`, `.btn`, `.tag`...). Estrutura: `core/auth` (AuthService com signals, interceptor funcional, `authGuard`), `core/layout/shell` (sidebar), `features/<nome>` (uma pasta por página, lazy via `loadComponent`), `shared/`. API sempre por caminho relativo `/api/...` — em dev o `proxy.conf.json` encaminha para `localhost:8080` (não usar URL absoluta nem CORS). Token JWT em `localStorage` (`poupito.token`).
+Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/postcss` (`.postcssrc.json`); tema em `src/styles.css` (variáveis CSS `:root`/`[data-theme="dark"]` + classes `.panel`, `.card`, `.btn`, `.tag`...). `ThemeService` (`core/theme/`) controla claro/escuro (signal + localStorage `poupito.theme`; script inline no `index.html` aplica antes do boot pra evitar flash); gráficos Chart.js leem as cores do tema via `core/theme/chart-theme.ts`. Estrutura: `core/auth` (AuthService com signals, interceptor funcional, `authGuard`), `core/layout/shell` (sidebar), `features/<nome>` (uma pasta por página, lazy via `loadComponent`), `shared/`. API sempre por caminho relativo `/api/...` — em dev o `proxy.conf.json` encaminha para `localhost:8080` (não usar URL absoluta nem CORS). Token JWT em `localStorage` (`poupito.token`).
 
 **Gotcha do Karma:** o `karma.conf.js` referenciado pelo builder `@angular/build:karma` **substitui** a config default em vez de mesclar — se recriar, use `ng generate config karma` e edite (senão os testes quebram com "describe is not defined"). Os thresholds de cobertura (90/80/90/90) vivem no `coverageReporter.check` desse arquivo.
 
@@ -185,7 +185,7 @@ Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/post
 
 ## PWA (sessão #20)
 
-- `ng add @angular/pwa` gerou `manifest.webmanifest` (nome/tema "Poupito", `#0d1117`), `ngsw-config.json` e o registro do service worker via `provideServiceWorker('ngsw-worker.js', { enabled: !isDevMode() })` no `app.config.ts` — **desabilitado em `ng serve` normal**, só ativa em build de produção (`ng build --configuration production` ou `ng serve --configuration production`).
+- `ng add @angular/pwa` gerou `manifest.webmanifest` (nome "Poupito", `theme_color #0F172A`/`background_color #F3F4F6`; ícones reais do logo desde a sessão #23, não mais o placeholder do Angular), `ngsw-config.json` e o registro do service worker via `provideServiceWorker('ngsw-worker.js', { enabled: !isDevMode() })` no `app.config.ts` — **desabilitado em `ng serve` normal**, só ativa em build de produção (`ng build --configuration production` ou `ng serve --configuration production`).
 - Ícones do manifest são o placeholder padrão do schematic (logo do Angular) — ainda não existe um asset de marca próprio do Poupito; pendência conhecida.
 - `Shell`: sidebar vira **drawer off-canvas** abaixo de 700px (`transform: translateX(-100%)`, botão hambúrguer fixo, backdrop semi-transparente) — fecha sozinha ao navegar para outra rota ou ao clicar no backdrop. Entre 701–900px mantém o comportamento anterior (barra horizontal rolável, sessão anterior a esta). Estado (`sidebarOpen` signal) não persiste — sempre começa fechada.
 

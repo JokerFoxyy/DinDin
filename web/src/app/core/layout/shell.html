@@ -19,6 +19,9 @@
       @if (currentUser(); as user) {
         <div class="user-email" [title]="user.email">{{ user.email }}</div>
       }
+      <button class="theme-toggle" type="button" (click)="toggleTheme()">
+        {{ theme() === 'dark' ? '☀️ Tema claro' : '🌙 Tema escuro' }}
+      </button>
       <button class="logout-btn" (click)="logout()">Sair</button>
     </div>
   </aside>

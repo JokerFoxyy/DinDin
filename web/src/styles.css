@@ -1,25 +1,53 @@
 @import "tailwindcss";
 
-/* Tema dark do protótipo (prototipo-dashboard.html) */
+/* Identidade visual Poupito (sessão #23 — "Crescimento Seguro").
+   Azul-marinho = confiança/estabilidade; verde esmeralda = crescimento/ação.
+   Tema CLARO é o padrão; o dark é ativado por [data-theme="dark"] no <html>. */
 :root {
-  --bg: #0d1117;
-  --card: #161b22;
-  --card2: #1c2330;
-  --border: #2a3240;
-  --text: #e6edf3;
-  --muted: #8b949e;
-  --accent: #4f8ef7;
-  --green: #3fb950;
-  --red: #f85149;
-  --yellow: #d29922;
-  --purple: #a371f7;
+  /* superfícies claras */
+  --bg: #f3f4f6;
+  --card: #ffffff;
+  --card2: #f8fafc;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --muted: #64748b;
+  /* ação / semânticas */
+  --accent: #059669;         /* verde esmeralda (CTA, links, saldo positivo) */
+  --accent-strong: #047857;  /* hover */
+  --green: #059669;
+  --red: #dc2626;
+  --yellow: #d97706;
+  --purple: #7c3aed;
+
+  /* "chrome" da marca — azul-marinho, IGUAL nos dois temas (elementos de
+     segurança/navegação): a sidebar usa estas variáveis, não as de card. */
+  --brand-navy: #0f172a;
+  --brand-navy-2: #1e293b;
+  --sidebar-text: #e2e8f0;
+  --sidebar-muted: #94a3b8;
+  --sidebar-border: #334155;
+}
+
+:root[data-theme="dark"] {
+  --bg: #0f172a;
+  --card: #1e293b;
+  --card2: #263449;
+  --border: #334155;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #10b981;
+  --accent-strong: #059669;
+  --green: #10b981;
+  --red: #f87171;
+  --yellow: #fbbf24;
+  --purple: #a78bfa;
 }
 
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-family: 'Inter', 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
 }
 
 body {
@@ -35,13 +63,13 @@ body {
   background: var(--accent);
   color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 9px 16px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 }
-.btn:hover { opacity: .9; }
+.btn:hover { background: var(--accent-strong); }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 
 .card {
@@ -77,7 +105,7 @@ th {
   border-bottom: 1px solid var(--border);
   font-size: 12px;
 }
-td { padding: 9px 8px; border-bottom: 1px solid rgba(42, 50, 64, .5); }
+td { padding: 9px 8px; border-bottom: 1px solid var(--border); }
 
 .tag {
   display: inline-block;
@@ -88,7 +116,7 @@ td { padding: 9px 8px; border-bottom: 1px solid rgba(42, 50, 64, .5); }
 }
 
 .bar-bg {
-  background: var(--card2);
+  background: var(--border);
   border-radius: 4px;
   height: 6px;
   width: 100%;
@@ -121,8 +149,8 @@ td { padding: 9px 8px; border-bottom: 1px solid rgba(42, 50, 64, .5); }
 .field .error { font-size: 12px; color: var(--red); margin-top: 4px; }
 
 .form-error {
-  background: rgba(248, 81, 73, .12);
-  border: 1px solid rgba(248, 81, 73, .4);
+  background: color-mix(in srgb, var(--red) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--red) 40%, transparent);
   color: var(--red);
   border-radius: 8px;
   padding: 10px 12px;

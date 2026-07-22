@@ -124,6 +124,21 @@ describe('Shell', () => {
     expect(fixture.nativeElement.querySelector('.sidebar-backdrop')).toBeNull();
   });
 
+  it('should toggle the theme when the theme button is clicked', () => {
+    fixture.detectChanges();
+
+    const toggle = fixture.nativeElement.querySelector('.theme-toggle') as HTMLButtonElement;
+    expect(toggle).not.toBeNull();
+
+    const before = document.documentElement.getAttribute('data-theme');
+    toggle.click();
+    fixture.detectChanges();
+    const after = document.documentElement.getAttribute('data-theme');
+
+    expect(after).not.toBe(before);
+    localStorage.removeItem('poupito.theme');
+  });
+
   it('should logout and navigate to login when logout is clicked', () => {
     const router = TestBed.inject(Router);
     spyOn(router, 'navigate');

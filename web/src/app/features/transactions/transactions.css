@@ -64,7 +64,7 @@ h1 {
 .installment-chip {
   margin-left: 6px;
   color: var(--accent);
-  background: rgba(79, 142, 247, .15);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .installment-preview {
