@@ -94,7 +94,10 @@ Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/post
 
 **Gotcha do Karma:** o `karma.conf.js` referenciado pelo builder `@angular/build:karma` **substitui** a config default em vez de mesclar — se recriar, use `ng generate config karma` e edite (senão os testes quebram com "describe is not defined"). Os thresholds de cobertura (90/80/90/90) vivem no `coverageReporter.check` desse arquivo.
 
-## Domínio (sessões #5–#6)
+## Domínio (sessões #5–#6) — parcialmente superado pela #25
+
+> ⚠️ A modelagem abaixo é a original. A **sessão #25** separou conta e cartão: contas passaram a ser só `CHECKING`/`CASH` (sem `closingDay`/`dueDay`), cartão virou entidade própria, e transação tem conta **XOR** cartão. Leia primeiro a seção **"Remodelagem Contas & Cartões (sessão #25)"** abaixo — ela é a fonte de verdade atual do domínio de contas/cartões/faturas/transações.
+
 
 - `/api/v1/accounts` e `/api/v1/categories`: CRUDs escopados por usuário (recurso alheio → 404); cartão exige `closingDay`/`dueDay`; categoria única por (user, nome, kind) → 409.
 - `/api/v1/transactions`: `GET ?month=YYYY-MM` (obrigatório) `&accountId&categoryId&type&page&size` → `PageResponse`; POST/PUT/DELETE. `amount` sempre positivo (sinal vem do `type`); categoria deve ter kind coerente com o type; `INVOICE_ADJUSTMENT` é reservado (400 na API).
@@ -182,6 +185,21 @@ Angular 20 standalone + signals + `inject()`; Tailwind v4 via `@tailwindcss/post
 - Colunas: Data, Descrição, Conta, Categoria, Tipo, Valor, Tags, Parcela, Fatura — espelham o que já aparece na tela de Transações. No xlsx, "Valor" é célula `NUMERIC` com format `#,##0.00` (nunca texto formatado), pra dar pra somar/filtrar no Excel depois.
 - Nome do arquivo: `transacoes-{mês}.csv`/`.xlsx`. Resposta é `ResponseEntity<byte[]>` com `Content-Disposition: attachment`.
 - Frontend: botões "Exportar CSV"/"Exportar xlsx" na tela de Transações usam os filtros/mês atuais da tela (`TransactionService.export()`, `responseType: 'blob'`); download disparado via `URL.createObjectURL` + `<a download>` temporário.
+- Colunas de export após a #25: "Conta/Cartão" + "Método" no lugar da coluna única "Conta" (ver seção da #25).
+
+## Remodelagem Contas & Cartões (sessão #25) — fonte de verdade do domínio de pagamento
+
+Separa "onde o dinheiro vive" (conta) de "instrumento de pagamento" (cartão). Migration **V12** recomeça os dados transacionais (app pré-produção).
+
+- **Contas** (`/v1/accounts`): tipo só `CHECKING` ou `CASH` (removido `CREDIT_CARD`); sem mais `closingDay`/`dueDay`. Payload = `{name, type}`.
+- **Cartões** (`/v1/cards`, entidade `Card` própria): `{name, accountId, closingDay, dueDay}` — **sempre vinculado a uma conta** (é dela que a fatura é paga); `closingDay`/`dueDay` obrigatórios (400 se faltarem). CRUD escopado por usuário; `CardResponse` traz `accountName`.
+- **Transação = conta XOR cartão**: `account_id` nullable + `card_id`, com CHECK `chk_transactions_account_xor_card` (exatamente um preenchido). `TransactionRequest` = `{description, amount, date, type, accountId?, cardId?, categoryId, tags, installments}` — informar conta **ou** cartão (400 "Informe conta OU cartão"). Entrada (`INCOME`) em cartão é rejeitada; parcelamento (`installments>1`) **exige cartão** ("Parcelamento só é permitido no cartão de crédito").
+- **Método de pagamento é derivado, nunca digitado** (`PaymentMethod.of(tx, accountType)`): `card_id != null` → `CREDITO`; conta `CASH` → `DINHEIRO`; senão `DEBITO`. `TransactionResponse` expõe `cardId`, `cardName`, `method`.
+- **Fatura por cartão**: `card_invoices` agora referencia `card_id` (não mais `account_id`), única por (cartão, mês). `CardInvoiceService.getOrCreateInvoiceFor(Card, data)`. Compra no crédito no fechamento ou depois → fatura do mês seguinte (regra da #9 preservada).
+- **Pagar fatura** (`POST /v1/invoices/{id}/pay`, body `{accountId}`): cria uma transação `INVOICE_PAYMENT` debitando a **conta** informada (a compra no crédito já foi contada na competência — por isso `INVOICE_PAYMENT` é **excluído das agregações de gasto**, pra não contar duas vezes). `INVOICE_ADJUSTMENT` e `INVOICE_PAYMENT` são tipos reservados (400 se vierem no request). `InvoiceSummaryResponse` traz `cardId`/`cardName`.
+- **Importer**: um nome de "conta" da planilha pode resolver para conta existente, cartão existente, criar conta nova (`createType`) ou **criar cartão** (`createCard{accountId, closingDay, dueDay}`) — ver `AccountMappingChoice`. Isso corrige o bug da aba **Faturas zerada** (o import antigo pulava o vínculo de fatura; agora `ImportService.saveCardRow` liga a compra à fatura do cartão).
+- **Fixos** seguem sempre em conta (cartão em fixos = melhoria futura). LGPD/export (`UserDataService`) inclui `cards`; delete de conta segue ordem FK-safe transações → faturas (`deleteByCardIdIn`) → cards → accounts.
+- **Frontend**: painel **Cartões** em Configurações (CRUD vinculado a conta); seletor **"Pagar com"** no form de transação agrupa contas + cartões (`account:<id>`/`card:<id>`), campo "Parcelas" só aparece com cartão selecionado; **badge de método** (Crédito/Débito/Dinheiro) na listagem; tela **Faturas** por cartão com ação "Pagar fatura" que pede a conta; import com mapeamento de cartão. `Transaction.accountId`/`cardId` nullable, `method` sempre presente.
 
 ## PWA (sessão #20)
 
