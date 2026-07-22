@@ -13,7 +13,7 @@ describe('Login', () => {
   let authService: jasmine.SpyObj<AuthService>;
   let router: jasmine.SpyObj<Router>;
 
-  const user: UserResponse = { id: 'u1', email: 'victor@guaranin.com' };
+  const user: UserResponse = { id: 'u1', email: 'victor@poupito.com' };
 
   function fillForm(email: string, password: string): void {
     component.form.setValue({ email, password });
@@ -51,29 +51,29 @@ describe('Login', () => {
 
   it('should navigate to dashboard when login succeeds', () => {
     authService.login.and.returnValue(of(user));
-    fillForm('victor@guaranin.com', 'senha-forte-123');
+    fillForm('victor@poupito.com', 'senha-forte-123');
 
     component.submit();
 
-    expect(authService.login).toHaveBeenCalledWith('victor@guaranin.com', 'senha-forte-123');
+    expect(authService.login).toHaveBeenCalledWith('victor@poupito.com', 'senha-forte-123');
     expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);
   });
 
   it('should call register when in register mode', () => {
     authService.register.and.returnValue(of(user));
     component.toggleMode();
-    fillForm('novo@guaranin.com', 'senha-forte-123');
+    fillForm('novo@poupito.com', 'senha-forte-123');
 
     component.submit();
 
-    expect(authService.register).toHaveBeenCalledWith('novo@guaranin.com', 'senha-forte-123');
+    expect(authService.register).toHaveBeenCalledWith('novo@poupito.com', 'senha-forte-123');
   });
 
   it('should show invalid credentials message when login returns 401', () => {
     authService.login.and.returnValue(
       throwError(() => new HttpErrorResponse({ status: 401 }))
     );
-    fillForm('victor@guaranin.com', 'senha-errada-123');
+    fillForm('victor@poupito.com', 'senha-errada-123');
 
     component.submit();
 
@@ -86,7 +86,7 @@ describe('Login', () => {
       throwError(() => new HttpErrorResponse({ status: 409 }))
     );
     component.toggleMode();
-    fillForm('duplicado@guaranin.com', 'senha-forte-123');
+    fillForm('duplicado@poupito.com', 'senha-forte-123');
 
     component.submit();
 
@@ -97,7 +97,7 @@ describe('Login', () => {
     authService.login.and.returnValue(
       throwError(() => new HttpErrorResponse({ status: 500 }))
     );
-    fillForm('victor@guaranin.com', 'senha-forte-123');
+    fillForm('victor@poupito.com', 'senha-forte-123');
 
     component.submit();
 
@@ -108,7 +108,7 @@ describe('Login', () => {
     authService.login.and.returnValue(
       throwError(() => new HttpErrorResponse({ status: 401 }))
     );
-    fillForm('victor@guaranin.com', 'senha-errada-123');
+    fillForm('victor@poupito.com', 'senha-errada-123');
     component.submit();
 
     component.toggleMode();

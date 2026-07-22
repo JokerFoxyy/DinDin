@@ -24,7 +24,7 @@ describe('Shell', () => {
     const spy = jasmine.createSpyObj<AuthService>('AuthService',
       ['loadCurrentUser', 'logout', 'clearSession']);
     authService = Object.assign(spy, { currentUser: signal<UserResponse | null>(null) });
-    authService.loadCurrentUser.and.returnValue(of({ id: 'uuid-1', email: 'victor@guaranin.com' }));
+    authService.loadCurrentUser.and.returnValue(of({ id: 'uuid-1', email: 'victor@poupito.com' }));
     authService.logout.and.returnValue(of(void 0));
 
     budgetService = jasmine.createSpyObj<BudgetService>('BudgetService', ['alerts']);
@@ -64,10 +64,10 @@ describe('Shell', () => {
   });
 
   it('should show the user email when loaded', () => {
-    authService.currentUser.set({ id: 'uuid-1', email: 'victor@guaranin.com' });
+    authService.currentUser.set({ id: 'uuid-1', email: 'victor@poupito.com' });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.user-email').textContent).toContain('victor@guaranin.com');
+    expect(fixture.nativeElement.querySelector('.user-email').textContent).toContain('victor@poupito.com');
   });
 
   it('should not show a budget alert badge when there are no alerts', () => {
@@ -122,6 +122,21 @@ describe('Shell', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.sidebar-backdrop')).toBeNull();
+  });
+
+  it('should toggle the theme when the theme button is clicked', () => {
+    fixture.detectChanges();
+
+    const toggle = fixture.nativeElement.querySelector('.theme-toggle') as HTMLButtonElement;
+    expect(toggle).not.toBeNull();
+
+    const before = document.documentElement.getAttribute('data-theme');
+    toggle.click();
+    fixture.detectChanges();
+    const after = document.documentElement.getAttribute('data-theme');
+
+    expect(after).not.toBe(before);
+    localStorage.removeItem('poupito.theme');
   });
 
   it('should logout and navigate to login when logout is clicked', () => {

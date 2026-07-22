@@ -2,12 +2,26 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <title>Guaranin</title>
+  <title>Poupito</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#0d1117">
+  <meta name="theme-color" content="#0F172A">
+  <script>
+    // Aplica o tema antes do Angular subir, evitando flash de cor errada.
+    // Prioridade: escolha salva > preferência do sistema > claro (padrão).
+    (function () {
+      try {
+        var saved = localStorage.getItem('poupito.theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
 </head>
 <body>
   <app-root></app-root>

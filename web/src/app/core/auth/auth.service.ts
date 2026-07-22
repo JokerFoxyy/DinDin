@@ -6,7 +6,7 @@ import { UserResponse } from './auth.models';
 
 // Flag NÃO-sensível apenas para roteamento no cliente. A credencial real é o cookie
 // httpOnly (inacessível ao JS); esta flag só evita um flicker de tela ao recarregar.
-const AUTH_FLAG = 'guaranin.authed';
+const AUTH_FLAG = 'poupito.authed';
 const API = '/api/v1/auth';
 
 @Injectable({ providedIn: 'root' })

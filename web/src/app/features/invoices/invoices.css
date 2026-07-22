@@ -43,9 +43,9 @@ h1 {
   padding: 3px 10px;
   border-radius: 12px;
 }
-.status-open { background: rgba(79, 142, 247, .15); color: var(--accent); }
-.status-closed { background: rgba(210, 153, 34, .15); color: var(--yellow); }
-.status-paid { background: rgba(63, 185, 80, .15); color: var(--green); }
+.status-open { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); }
+.status-closed { background: color-mix(in srgb, var(--yellow) 15%, transparent); color: var(--yellow); }
+.status-paid { background: color-mix(in srgb, var(--green) 15%, transparent); color: var(--green); }
 
 .invoice-figures {
   display: flex;

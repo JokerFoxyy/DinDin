@@ -52,8 +52,8 @@ h1 {
   color: var(--muted);
 }
 
-.tag-green { background: rgba(63, 185, 80, .15); color: var(--green); }
-.tag-red { background: rgba(248, 81, 73, .15); color: var(--red); }
+.tag-green { background: color-mix(in srgb, var(--green) 15%, transparent); color: var(--green); }
+.tag-red { background: color-mix(in srgb, var(--red) 15%, transparent); color: var(--red); }
 
 .modal-backdrop {
   position: fixed;

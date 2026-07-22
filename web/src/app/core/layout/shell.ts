@@ -3,6 +3,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 
 import { AuthService } from '../auth/auth.service';
 import { BudgetService } from '../../features/budgets/budget.service';
+import { ThemeService } from '../theme/theme.service';
 
 interface NavItem {
   icon: string;
@@ -19,11 +20,13 @@ interface NavItem {
 export class Shell implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly budgetService = inject(BudgetService);
+  private readonly themeService = inject(ThemeService);
   private readonly router = inject(Router);
 
   readonly currentUser = this.authService.currentUser;
   readonly budgetAlertCount = signal(0);
   readonly sidebarOpen = signal(false);
+  readonly theme = this.themeService.theme;
 
   readonly navItems: NavItem[] = [
     { icon: '📊', label: 'Dashboard', path: '/dashboard' },
@@ -53,6 +56,10 @@ export class Shell implements OnInit {
 
   closeSidebar(): void {
     this.sidebarOpen.set(false);
+  }
+
+  toggleTheme(): void {
+    this.themeService.toggle();
   }
 
   logout(): void {
