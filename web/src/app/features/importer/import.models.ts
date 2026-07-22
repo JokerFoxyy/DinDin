@@ -20,9 +20,17 @@ export interface ImportPreview {
   unmatchedCategories: string[];
 }
 
+export interface CreateCardChoice {
+  accountId: string;
+  closingDay: number;
+  dueDay: number;
+}
+
 export interface AccountMappingChoice {
   existingAccountId: string | null;
+  existingCardId: string | null;
   createType: AccountType | null;
+  createCard: CreateCardChoice | null;
 }
 
 export interface CategoryMappingChoice {

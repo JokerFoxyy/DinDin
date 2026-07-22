@@ -22,8 +22,8 @@ export class InvoiceService {
     return this.http.post<InvoiceDetail>(`${API}/${id}/close`, { declaredTotal });
   }
 
-  pay(id: string): Observable<InvoiceDetail> {
-    return this.http.post<InvoiceDetail>(`${API}/${id}/pay`, {});
+  pay(id: string, accountId: string): Observable<InvoiceDetail> {
+    return this.http.post<InvoiceDetail>(`${API}/${id}/pay`, { accountId });
   }
 
   reopen(id: string): Observable<InvoiceDetail> {

@@ -28,10 +28,21 @@
   <form [formGroup]="filterForm" class="filters">
     <input type="search" formControlName="q" aria-label="Buscar por descrição" placeholder="Buscar..."
            (input)="onSearchInput()" />
-    <select formControlName="accountId" aria-label="Filtrar por conta" (change)="onFiltersChange()">
-      <option value="">Todas as contas</option>
-      @for (account of accounts(); track account.id) {
-        <option [value]="account.id">{{ account.name }}</option>
+    <select formControlName="target" aria-label="Filtrar por conta ou cartão" (change)="onFiltersChange()">
+      <option value="">Contas e cartões</option>
+      @if (accounts().length > 0) {
+        <optgroup label="Contas">
+          @for (account of accounts(); track account.id) {
+            <option [value]="'account:' + account.id">{{ account.name }}</option>
+          }
+        </optgroup>
+      }
+      @if (cards().length > 0) {
+        <optgroup label="Cartões">
+          @for (card of cards(); track card.id) {
+            <option [value]="'card:' + card.id">{{ card.name }}</option>
+          }
+        </optgroup>
       }
     </select>
     <select formControlName="categoryId" aria-label="Filtrar por categoria" (change)="onFiltersChange()">
@@ -57,7 +68,8 @@
       <tr>
         <th>Data</th>
         <th>Descrição</th>
-        <th>Conta</th>
+        <th>Conta/Cartão</th>
+        <th>Método</th>
         <th>Categoria</th>
         <th class="amount-col">Valor</th>
         <th></th>
@@ -79,10 +91,17 @@
             }
           </td>
           <td>
-            {{ transaction.accountName }}
+            {{ transaction.cardName ?? transaction.accountName }}
             @if (transaction.invoiceMonth) {
               <span class="invoice-hint">fatura {{ transaction.invoiceMonth | date: 'MMM/yy' }}</span>
             }
+          </td>
+          <td>
+            <span class="method-badge" [class.method-credito]="transaction.method === 'CREDITO'"
+                  [class.method-debito]="transaction.method === 'DEBITO'"
+                  [class.method-dinheiro]="transaction.method === 'DINHEIRO'">
+              {{ methodLabels[transaction.method] }}
+            </span>
           </td>
           <td>
             @if (transaction.categoryName) {
@@ -96,7 +115,7 @@
             {{ transaction.type === 'INCOME' ? '+' : '' }}{{ transaction.amount | currency: 'BRL' }}
           </td>
           <td class="row-actions">
-            @if (transaction.type !== 'INVOICE_ADJUSTMENT') {
+            @if (transaction.type !== 'INVOICE_ADJUSTMENT' && transaction.type !== 'INVOICE_PAYMENT') {
               <button type="button" class="link" (click)="openEdit(transaction)">Editar</button>
             }
             <button type="button" class="link danger" (click)="remove(transaction)">Excluir</button>
@@ -154,12 +173,24 @@
             </select>
           </div>
           <div class="field">
-            <label for="t-account">Conta</label>
-            <select id="t-account" formControlName="accountId">
-              @for (account of accounts(); track account.id) {
-                <option [value]="account.id">{{ account.name }}</option>
+            <label for="t-target">Pagar com</label>
+            <select id="t-target" formControlName="target">
+              <optgroup label="Contas">
+                @for (account of accounts(); track account.id) {
+                  <option [value]="'account:' + account.id">{{ account.name }}</option>
+                }
+              </optgroup>
+              @if (cardsForType().length > 0) {
+                <optgroup label="Cartões de crédito">
+                  @for (card of cardsForType(); track card.id) {
+                    <option [value]="'card:' + card.id">{{ card.name }}</option>
+                  }
+                </optgroup>
               }
             </select>
+            @if (form.controls.target.touched && form.controls.target.invalid) {
+              <div class="error">Escolha a conta ou o cartão</div>
+            }
           </div>
         </div>
         <div class="field">
@@ -177,7 +208,7 @@
           <label for="t-tags">Tags (separadas por vírgula)</label>
           <input id="t-tags" type="text" formControlName="tags" placeholder="Ex.: viagem, trabalho" />
         </div>
-        @if (!editing() && form.controls.type.value === 'EXPENSE') {
+        @if (!editing() && isCardSelected()) {
           <div class="field">
             <label for="t-installments">Parcelas</label>
             <input id="t-installments" type="number" min="1" max="60" formControlName="installments" />

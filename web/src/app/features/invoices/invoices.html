@@ -16,7 +16,7 @@
     <div class="panel invoice-card">
       <div class="invoice-head">
         <div>
-          <h2>{{ invoice.accountName }}</h2>
+          <h2>{{ invoice.cardName }}</h2>
           <span class="dates">
             fecha {{ invoice.closingDate | date: 'dd/MM' }} · vence {{ invoice.dueDate | date: 'dd/MM' }}
           </span>
@@ -51,12 +51,26 @@
         </div>
       }
 
+      @if (payingId() === invoice.id) {
+        <div class="close-form">
+          <label [attr.for]="'pay-account-' + invoice.id">Pagar com a conta</label>
+          <select [id]="'pay-account-' + invoice.id" [value]="payAccountId()"
+                  (change)="onPayAccountChange($any($event.target).value)">
+            @for (account of accounts(); track account.id) {
+              <option [value]="account.id">{{ account.name }}</option>
+            }
+          </select>
+          <button type="button" class="btn" (click)="confirmPay(invoice)">Confirmar pagamento</button>
+          <button type="button" class="btn-ghost" (click)="cancelPay()">Cancelar</button>
+        </div>
+      }
+
       <div class="invoice-actions">
         @if (invoice.status === 'OPEN') {
           <button type="button" class="link" (click)="startClose(invoice)">Fechar fatura</button>
         }
         @if (invoice.status === 'CLOSED') {
-          <button type="button" class="link" (click)="pay(invoice)">Marcar como paga</button>
+          <button type="button" class="link" (click)="startPay(invoice)" [disabled]="accounts().length === 0">Pagar fatura</button>
           <button type="button" class="link" (click)="reopen(invoice)">Reabrir</button>
         }
         <button type="button" class="link" (click)="toggleDetail(invoice)">
