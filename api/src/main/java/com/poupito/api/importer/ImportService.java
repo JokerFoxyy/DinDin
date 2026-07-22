@@ -3,15 +3,19 @@ package com.poupito.api.importer;
 import com.poupito.api.account.Account;
 import com.poupito.api.account.AccountRepository;
 import com.poupito.api.account.AccountType;
+import com.poupito.api.card.Card;
+import com.poupito.api.card.CardRepository;
 import com.poupito.api.category.Category;
 import com.poupito.api.category.CategoryKind;
 import com.poupito.api.category.CategoryRepository;
+import com.poupito.api.common.error.BusinessException;
 import com.poupito.api.importer.dto.AccountMappingChoice;
 import com.poupito.api.importer.dto.CategoryMappingChoice;
 import com.poupito.api.importer.dto.ImportCommitResponse;
 import com.poupito.api.importer.dto.ImportMappingRequest;
 import com.poupito.api.importer.dto.ImportPreviewResponse;
 import com.poupito.api.importer.dto.ImportRowResponse;
+import com.poupito.api.invoice.CardInvoiceService;
 import com.poupito.api.transaction.Transaction;
 import com.poupito.api.transaction.TransactionRepository;
 import com.poupito.api.transaction.TransactionType;
@@ -31,15 +35,20 @@ public class ImportService {
 
 	private final SpreadsheetParser parser;
 	private final AccountRepository accountRepository;
+	private final CardRepository cardRepository;
 	private final CategoryRepository categoryRepository;
 	private final TransactionRepository transactionRepository;
+	private final CardInvoiceService cardInvoiceService;
 
-	public ImportService(SpreadsheetParser parser, AccountRepository accountRepository,
-			CategoryRepository categoryRepository, TransactionRepository transactionRepository) {
+	public ImportService(SpreadsheetParser parser, AccountRepository accountRepository, CardRepository cardRepository,
+			CategoryRepository categoryRepository, TransactionRepository transactionRepository,
+			CardInvoiceService cardInvoiceService) {
 		this.parser = parser;
 		this.accountRepository = accountRepository;
+		this.cardRepository = cardRepository;
 		this.categoryRepository = categoryRepository;
 		this.transactionRepository = transactionRepository;
+		this.cardInvoiceService = cardInvoiceService;
 	}
 
 	@Transactional(readOnly = true)
@@ -48,13 +57,16 @@ public class ImportService {
 
 		Map<String, Account> existingAccounts = byNormalizedName(accountRepository.findAllByUserIdOrderByNameAsc(userId),
 				Account::getName);
+		Map<String, Card> existingCards = byNormalizedName(cardRepository.findAllByUserIdOrderByNameAsc(userId),
+				Card::getName);
 		Map<String, Category> existingCategories = byNormalizedName(
 				categoryRepository.findAllByUserIdOrderByNameAsc(userId), Category::getName);
 
 		List<String> unmatchedAccounts = rows.stream()
 				.map(ImportRow::accountNameRaw)
 				.distinct()
-				.filter(name -> !existingAccounts.containsKey(normalize(name)))
+				.filter(name -> !existingAccounts.containsKey(normalize(name))
+						&& !existingCards.containsKey(normalize(name)))
 				.sorted()
 				.toList();
 		List<String> unmatchedCategories = rows.stream()
@@ -76,23 +88,28 @@ public class ImportService {
 
 		Map<String, Account> accounts = new HashMap<>(
 				byNormalizedName(accountRepository.findAllByUserIdOrderByNameAsc(userId), Account::getName));
+		Map<String, Card> cards = new HashMap<>(
+				byNormalizedName(cardRepository.findAllByUserIdOrderByNameAsc(userId), Card::getName));
 		Map<String, Category> categories = new HashMap<>(
 				byNormalizedName(categoryRepository.findAllByUserIdOrderByNameAsc(userId), Category::getName));
+		Map<String, PaymentTarget> resolvedTargets = new HashMap<>();
 
 		int accountsCreated = 0;
+		int cardsCreated = 0;
 		int categoriesCreated = 0;
 		int created = 0;
 		int skipped = 0;
 
 		for (ImportRow row : rows) {
-			Account account = accounts.get(normalize(row.accountNameRaw()));
-			if (account == null) {
-				AccountMappingChoice accountChoice = mapping.accounts().get(row.accountNameRaw());
-				boolean creatingAccount = accountChoice == null || accountChoice.existingAccountId() == null;
-				account = resolveAccount(userId, row.accountNameRaw(), mapping);
-				accounts.put(normalize(row.accountNameRaw()), account);
-				if (creatingAccount) {
+			PaymentTarget target = resolvedTargets.get(normalize(row.accountNameRaw()));
+			if (target == null) {
+				target = resolveTarget(userId, row.accountNameRaw(), mapping, accounts, cards);
+				resolvedTargets.put(normalize(row.accountNameRaw()), target);
+				if (target.createdAccount()) {
 					accountsCreated++;
+				}
+				if (target.createdCard()) {
+					cardsCreated++;
 				}
 			}
 
@@ -110,30 +127,98 @@ public class ImportService {
 				}
 			}
 
-			boolean duplicate = transactionRepository.existsByUserIdAndAccountIdAndDescriptionAndAmountAndDateAndType(
-					userId, account.getId(), row.description(), row.amount(), row.date(), row.type());
-			if (duplicate) {
+			UUID categoryId = category != null ? category.getId() : null;
+			if (target.card() != null) {
+				// cartão só recebe gastos (entrada não existe no crédito) — cai na conta vinculada
+				if (row.type() == TransactionType.INCOME) {
+					if (saveAccountRow(userId, resolveCardAccount(userId, target.card()), categoryId, row)) {
+						created++;
+					} else {
+						skipped++;
+					}
+				} else if (saveCardRow(userId, target.card(), categoryId, row)) {
+					created++;
+				} else {
+					skipped++;
+				}
+			} else if (saveAccountRow(userId, target.account(), categoryId, row)) {
+				created++;
+			} else {
 				skipped++;
-				continue;
 			}
-
-			transactionRepository.save(new Transaction(userId, account.getId(),
-					category != null ? category.getId() : null, null, row.description(), row.amount(), row.date(),
-					row.type()));
-			created++;
 		}
 
-		return new ImportCommitResponse(created, skipped, accountsCreated, categoriesCreated);
+		return new ImportCommitResponse(created, skipped, accountsCreated + cardsCreated, categoriesCreated);
 	}
 
-	private Account resolveAccount(UUID userId, String rawName, ImportMappingRequest mapping) {
+	private boolean saveAccountRow(UUID userId, Account account, UUID categoryId, ImportRow row) {
+		if (transactionRepository.existsByUserIdAndAccountIdAndDescriptionAndAmountAndDateAndType(
+				userId, account.getId(), row.description(), row.amount(), row.date(), row.type())) {
+			return false;
+		}
+		transactionRepository.save(Transaction.forAccount(userId, account.getId(), categoryId,
+				row.description(), row.amount(), row.date(), row.type()));
+		return true;
+	}
+
+	private boolean saveCardRow(UUID userId, Card card, UUID categoryId, ImportRow row) {
+		if (transactionRepository.existsByUserIdAndCardIdAndDescriptionAndAmountAndDateAndType(
+				userId, card.getId(), row.description(), row.amount(), row.date(), row.type())) {
+			return false;
+		}
+		UUID invoiceId = cardInvoiceService.getOrCreateInvoiceFor(card, row.date()).getId();
+		transactionRepository.save(Transaction.forCard(userId, card.getId(), categoryId, invoiceId,
+				row.description(), row.amount(), row.date(), row.type()));
+		return true;
+	}
+
+	private Account resolveCardAccount(UUID userId, Card card) {
+		return accountRepository.findByIdAndUserId(card.getAccountId(), userId)
+				.orElseThrow(() -> new IllegalStateException("Conta vinculada do cartão não encontrada"));
+	}
+
+	/** Resolve para onde vai um nome de "conta" da planilha: conta existente/nova ou cartão existente/novo. */
+	private PaymentTarget resolveTarget(UUID userId, String rawName, ImportMappingRequest mapping,
+			Map<String, Account> accounts, Map<String, Card> cards) {
+		String key = normalize(rawName);
+		Account existingAccount = accounts.get(key);
+		if (existingAccount != null) {
+			return PaymentTarget.account(existingAccount, false);
+		}
+		Card existingCard = cards.get(key);
+		if (existingCard != null) {
+			return PaymentTarget.card(existingCard, false);
+		}
+
 		AccountMappingChoice choice = mapping.accounts().get(rawName);
 		if (choice != null && choice.existingAccountId() != null) {
-			return accountRepository.findByIdAndUserId(choice.existingAccountId(), userId)
+			Account account = accountRepository.findByIdAndUserId(choice.existingAccountId(), userId)
 					.orElseThrow(() -> new IllegalArgumentException("Conta não encontrada: " + choice.existingAccountId()));
+			accounts.put(key, account);
+			return PaymentTarget.account(account, false);
 		}
+		if (choice != null && choice.existingCardId() != null) {
+			Card card = cardRepository.findByIdAndUserId(choice.existingCardId(), userId)
+					.orElseThrow(() -> new IllegalArgumentException("Cartão não encontrado: " + choice.existingCardId()));
+			cards.put(key, card);
+			return PaymentTarget.card(card, false);
+		}
+		if (choice != null && choice.createCard() != null) {
+			AccountMappingChoice.CreateCardChoice cc = choice.createCard();
+			if (cc.accountId() == null || cc.closingDay() == null || cc.dueDay() == null) {
+				throw new BusinessException("Cartão exige conta vinculada, dia de fechamento e de vencimento: " + rawName);
+			}
+			Account linked = accountRepository.findByIdAndUserId(cc.accountId(), userId)
+					.orElseThrow(() -> new IllegalArgumentException("Conta vinculada não encontrada: " + cc.accountId()));
+			Card card = cardRepository.save(new Card(userId, linked.getId(), rawName, cc.closingDay(), cc.dueDay()));
+			cards.put(key, card);
+			return PaymentTarget.card(card, true);
+		}
+
 		AccountType type = choice != null && choice.createType() != null ? choice.createType() : AccountType.CHECKING;
-		return accountRepository.save(new Account(userId, rawName, type, null, null));
+		Account account = accountRepository.save(new Account(userId, rawName, type));
+		accounts.put(key, account);
+		return PaymentTarget.account(account, true);
 	}
 
 	private Category resolveCategory(UUID userId, String rawName, TransactionType type, ImportMappingRequest mapping) {
@@ -161,6 +246,16 @@ public class ImportService {
 
 	private String normalize(String value) {
 		return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+	}
+
+	private record PaymentTarget(Account account, Card card, boolean createdAccount, boolean createdCard) {
+		static PaymentTarget account(Account account, boolean created) {
+			return new PaymentTarget(account, null, created, false);
+		}
+
+		static PaymentTarget card(Card card, boolean created) {
+			return new PaymentTarget(null, card, false, created);
+		}
 	}
 
 }

@@ -1,6 +1,8 @@
 package com.poupito.api.account;
 
 import com.poupito.api.auth.refresh.RefreshTokenRepository;
+import com.poupito.api.card.Card;
+import com.poupito.api.card.CardRepository;
 import com.poupito.api.category.CategoryRepository;
 import com.poupito.api.common.error.NotFoundException;
 import com.poupito.api.goal.GoalRepository;
@@ -27,6 +29,7 @@ public class UserDataService {
 
 	private final UserRepository userRepository;
 	private final AccountRepository accountRepository;
+	private final CardRepository cardRepository;
 	private final CategoryRepository categoryRepository;
 	private final TransactionRepository transactionRepository;
 	private final CardInvoiceRepository cardInvoiceRepository;
@@ -36,12 +39,14 @@ public class UserDataService {
 	private final GoalRepository goalRepository;
 
 	public UserDataService(UserRepository userRepository, AccountRepository accountRepository,
-			CategoryRepository categoryRepository, TransactionRepository transactionRepository,
+			CardRepository cardRepository, CategoryRepository categoryRepository,
+			TransactionRepository transactionRepository,
 			CardInvoiceRepository cardInvoiceRepository, RecurringTransactionRepository recurringRepository,
 			RefreshTokenRepository refreshTokenRepository, InvestmentRepository investmentRepository,
 			GoalRepository goalRepository) {
 		this.userRepository = userRepository;
 		this.accountRepository = accountRepository;
+		this.cardRepository = cardRepository;
 		this.categoryRepository = categoryRepository;
 		this.transactionRepository = transactionRepository;
 		this.cardInvoiceRepository = cardInvoiceRepository;
@@ -56,24 +61,28 @@ public class UserDataService {
 		User user = userRepository.findById(userId)
 				.orElseThrow(() -> new NotFoundException("Usuário não encontrado"));
 		List<Account> accounts = accountRepository.findAllByUserIdOrderByNameAsc(userId);
-		List<UUID> accountIds = accounts.stream().map(Account::getId).toList();
+		List<Card> cards = cardRepository.findAllByUserIdOrderByNameAsc(userId);
+		List<UUID> cardIds = cards.stream().map(Card::getId).toList();
 
 		Map<String, Object> export = new LinkedHashMap<>();
 		export.put("exportedAt", java.time.Instant.now().toString());
 		export.put("user", Map.of("id", user.getId(), "email", user.getEmail(),
 				"createdAt", user.getCreatedAt().toString()));
 		export.put("accounts", accounts.stream().map(a -> Map.of(
-				"id", a.getId(), "name", a.getName(), "type", a.getType(),
-				"closingDay", nullSafe(a.getClosingDay()), "dueDay", nullSafe(a.getDueDay()))).toList());
+				"id", a.getId(), "name", a.getName(), "type", a.getType())).toList());
+		export.put("cards", cards.stream().map(c -> Map.of(
+				"id", c.getId(), "name", c.getName(), "accountId", c.getAccountId(),
+				"closingDay", c.getClosingDay(), "dueDay", c.getDueDay())).toList());
 		export.put("categories", categoryRepository.findAllByUserIdOrderByNameAsc(userId).stream().map(c -> Map.of(
 				"id", c.getId(), "name", c.getName(), "kind", c.getKind(),
 				"icon", nullSafe(c.getIcon()), "color", nullSafe(c.getColor()))).toList());
 		export.put("transactions", transactionRepository.findAllByUserIdOrderByDateAsc(userId).stream().map(t -> Map.of(
 				"id", t.getId(), "date", t.getDate().toString(), "description", t.getDescription(),
-				"amount", t.getAmount(), "type", t.getType(), "accountId", t.getAccountId(),
+				"amount", t.getAmount(), "type", t.getType(),
+				"accountId", nullSafe(t.getAccountId()), "cardId", nullSafe(t.getCardId()),
 				"categoryId", nullSafe(t.getCategoryId()), "invoiceId", nullSafe(t.getInvoiceId()))).toList());
-		export.put("cardInvoices", cardInvoiceRepository.findByAccountIdIn(accountIds).stream().map(i -> Map.of(
-				"id", i.getId(), "accountId", i.getAccountId(), "month", i.getMonth().toString(),
+		export.put("cardInvoices", cardInvoiceRepository.findByCardIdIn(cardIds).stream().map(i -> Map.of(
+				"id", i.getId(), "cardId", i.getCardId(), "month", i.getMonth().toString(),
 				"status", i.getStatus())).toList());
 		export.put("recurringTransactions", recurringRepository.findAllByUserIdOrderByDescriptionAsc(userId).stream()
 				.map(r -> Map.of("id", r.getId(), "description", r.getDescription(), "amount", r.getAmount(),
@@ -93,14 +102,15 @@ public class UserDataService {
 		if (!userRepository.existsById(userId)) {
 			throw new NotFoundException("Usuário não encontrado");
 		}
-		List<UUID> accountIds = accountRepository.findAllByUserIdOrderByNameAsc(userId).stream()
-				.map(Account::getId).toList();
-		// transações referenciam recurring_transactions e faturas; apagar transações primeiro
+		List<UUID> cardIds = cardRepository.findAllByUserId(userId).stream()
+				.map(Card::getId).toList();
+		// ordem FK-safe: transações -> faturas -> cartões -> contas
 		transactionRepository.deleteByUserId(userId);
 		recurringRepository.deleteByUserId(userId);
-		if (!accountIds.isEmpty()) {
-			cardInvoiceRepository.deleteByAccountIdIn(accountIds);
+		if (!cardIds.isEmpty()) {
+			cardInvoiceRepository.deleteByCardIdIn(cardIds);
 		}
+		cardRepository.deleteByUserId(userId);
 		categoryRepository.deleteByUserId(userId);
 		accountRepository.deleteByUserId(userId);
 		investmentRepository.deleteByUserId(userId);

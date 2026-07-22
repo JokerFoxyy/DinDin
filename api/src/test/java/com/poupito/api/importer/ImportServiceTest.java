@@ -3,6 +3,8 @@ package com.poupito.api.importer;
 import com.poupito.api.account.Account;
 import com.poupito.api.account.AccountRepository;
 import com.poupito.api.account.AccountType;
+import com.poupito.api.card.Card;
+import com.poupito.api.card.CardRepository;
 import com.poupito.api.category.Category;
 import com.poupito.api.category.CategoryKind;
 import com.poupito.api.category.CategoryRepository;
@@ -11,6 +13,9 @@ import com.poupito.api.importer.dto.CategoryMappingChoice;
 import com.poupito.api.importer.dto.ImportCommitResponse;
 import com.poupito.api.importer.dto.ImportMappingRequest;
 import com.poupito.api.importer.dto.ImportPreviewResponse;
+import com.poupito.api.invoice.CardInvoice;
+import com.poupito.api.invoice.CardInvoiceService;
+import com.poupito.api.transaction.Transaction;
 import com.poupito.api.transaction.TransactionRepository;
 import com.poupito.api.transaction.TransactionType;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,9 +55,13 @@ class ImportServiceTest {
 	@Mock
 	private AccountRepository accountRepository;
 	@Mock
+	private CardRepository cardRepository;
+	@Mock
 	private CategoryRepository categoryRepository;
 	@Mock
 	private TransactionRepository transactionRepository;
+	@Mock
+	private CardInvoiceService cardInvoiceService;
 
 	@InjectMocks
 	private ImportService service;
@@ -62,10 +71,11 @@ class ImportServiceTest {
 
 	@BeforeEach
 	void setUp() {
-		nubank = new Account(userId, "Nubank", AccountType.CREDIT_CARD, 10, 20);
+		nubank = new Account(userId, "Nubank", AccountType.CHECKING);
 		ReflectionTestUtils.setField(nubank, "id", nubankId);
 		mercado = new Category(userId, "Mercado", null, null, CategoryKind.EXPENSE);
 		ReflectionTestUtils.setField(mercado, "id", mercadoId);
+		lenient().when(cardRepository.findAllByUserIdOrderByNameAsc(userId)).thenReturn(List.of());
 	}
 
 	private InputStream fakeFile() {
@@ -93,16 +103,18 @@ class ImportServiceTest {
 	}
 
 	@Test
-	void shouldMatchAccountsAndCategoriesCaseInsensitively() throws Exception {
+	void shouldNotFlagAsUnmatched_whenNameIsAnExistingCard() throws Exception {
+		Card cartao = new Card(userId, nubankId, "Cartao X", 10, 20);
+		ReflectionTestUtils.setField(cartao, "id", UUID.randomUUID());
 		when(parser.parse(any(), anyInt())).thenReturn(List.of(
-				row("nubank", "mercado", TransactionType.EXPENSE, new BigDecimal("10.00"))));
-		when(accountRepository.findAllByUserIdOrderByNameAsc(userId)).thenReturn(List.of(nubank));
+				row("Cartao X", "Mercado", TransactionType.EXPENSE, new BigDecimal("10.00"))));
+		when(accountRepository.findAllByUserIdOrderByNameAsc(userId)).thenReturn(List.of());
+		when(cardRepository.findAllByUserIdOrderByNameAsc(userId)).thenReturn(List.of(cartao));
 		when(categoryRepository.findAllByUserIdOrderByNameAsc(userId)).thenReturn(List.of(mercado));
 
 		ImportPreviewResponse preview = service.preview(userId, fakeFile(), 2026);
 
 		assertThat(preview.unmatchedAccounts()).isEmpty();
-		assertThat(preview.unmatchedCategories()).isEmpty();
 	}
 
 	@Test
@@ -134,10 +146,43 @@ class ImportServiceTest {
 	}
 
 	@Test
+	void shouldRouteToCard_andLinkInvoice_whenMappingCreatesCard() throws Exception {
+		when(parser.parse(any(), anyInt())).thenReturn(List.of(
+				row("Nubank Cartao", "Mercado", TransactionType.EXPENSE, new BigDecimal("50.00"))));
+		when(accountRepository.findAllByUserIdOrderByNameAsc(userId)).thenReturn(List.of(nubank));
+		when(categoryRepository.findAllByUserIdOrderByNameAsc(userId)).thenReturn(List.of(mercado));
+		when(accountRepository.findByIdAndUserId(nubankId, userId)).thenReturn(java.util.Optional.of(nubank));
+		when(cardRepository.save(any())).thenAnswer(inv -> {
+			Card c = inv.getArgument(0);
+			ReflectionTestUtils.setField(c, "id", UUID.randomUUID());
+			return c;
+		});
+		CardInvoice invoice = new CardInvoice(UUID.randomUUID(), LocalDate.of(2026, 7, 1),
+				LocalDate.of(2026, 7, 28), LocalDate.of(2026, 8, 7));
+		ReflectionTestUtils.setField(invoice, "id", UUID.randomUUID());
+		when(cardInvoiceService.getOrCreateInvoiceFor(any(), any())).thenReturn(invoice);
+		when(transactionRepository.existsByUserIdAndCardIdAndDescriptionAndAmountAndDateAndType(
+				any(), any(), any(), any(), any(), any())).thenReturn(false);
+
+		ImportMappingRequest mapping = new ImportMappingRequest(
+				Map.of("Nubank Cartao", new AccountMappingChoice(null, null, null,
+						new AccountMappingChoice.CreateCardChoice(nubankId, 10, 20))),
+				Map.of());
+
+		ImportCommitResponse response = service.commit(userId, fakeFile(), 2026, mapping);
+
+		assertThat(response.transactionsCreated()).isEqualTo(1);
+		ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+		verify(transactionRepository).save(captor.capture());
+		assertThat(captor.getValue().getCardId()).isNotNull();
+		assertThat(captor.getValue().getInvoiceId()).isEqualTo(invoice.getId());
+	}
+
+	@Test
 	void shouldUseMappedExistingAccountAndCategory_whenProvided() throws Exception {
 		UUID otherAccountId = UUID.randomUUID();
 		UUID otherCategoryId = UUID.randomUUID();
-		Account other = new Account(userId, "Conta Real", AccountType.CHECKING, null, null);
+		Account other = new Account(userId, "Conta Real", AccountType.CHECKING);
 		ReflectionTestUtils.setField(other, "id", otherAccountId);
 		Category otherCategory = new Category(userId, "Categoria Real", null, null, CategoryKind.EXPENSE);
 		ReflectionTestUtils.setField(otherCategory, "id", otherCategoryId);
@@ -152,15 +197,14 @@ class ImportServiceTest {
 				any(), any(), any(), any(), any(), any())).thenReturn(false);
 
 		ImportMappingRequest mapping = new ImportMappingRequest(
-				Map.of("Itau", new AccountMappingChoice(otherAccountId, null)),
+				Map.of("Itau", new AccountMappingChoice(otherAccountId, null, null, null)),
 				Map.of("Roupa", new CategoryMappingChoice(otherCategoryId, null)));
 
 		ImportCommitResponse response = service.commit(userId, fakeFile(), 2026, mapping);
 
 		assertThat(response.accountsCreated()).isZero();
 		assertThat(response.categoriesCreated()).isZero();
-		ArgumentCaptor<com.poupito.api.transaction.Transaction> captor =
-				ArgumentCaptor.forClass(com.poupito.api.transaction.Transaction.class);
+		ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
 		verify(transactionRepository).save(captor.capture());
 		assertThat(captor.getValue().getAccountId()).isEqualTo(otherAccountId);
 		assertThat(captor.getValue().getCategoryId()).isEqualTo(otherCategoryId);

@@ -28,6 +28,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID>,
 	boolean existsByUserIdAndAccountIdAndDescriptionAndAmountAndDateAndType(UUID userId, UUID accountId,
 			String description, BigDecimal amount, LocalDate date, TransactionType type);
 
+	boolean existsByUserIdAndCardIdAndDescriptionAndAmountAndDateAndType(UUID userId, UUID cardId,
+			String description, BigDecimal amount, LocalDate date, TransactionType type);
+
 	void deleteByUserId(UUID userId);
 
 	@Query("select new com.poupito.api.transaction.CategorySpent(t.categoryId, sum(t.amount)) "

@@ -31,24 +31,16 @@ public class Account {
 	@Column(nullable = false)
 	private AccountType type;
 
-	@Column(name = "closing_day")
-	private Integer closingDay;
-
-	@Column(name = "due_day")
-	private Integer dueDay;
-
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
 
 	protected Account() {
 	}
 
-	public Account(UUID userId, String name, AccountType type, Integer closingDay, Integer dueDay) {
+	public Account(UUID userId, String name, AccountType type) {
 		this.userId = userId;
 		this.name = name;
 		this.type = type;
-		this.closingDay = closingDay;
-		this.dueDay = dueDay;
 	}
 
 	@PrePersist
@@ -58,11 +50,9 @@ public class Account {
 		}
 	}
 
-	public void update(String name, AccountType type, Integer closingDay, Integer dueDay) {
+	public void update(String name, AccountType type) {
 		this.name = name;
 		this.type = type;
-		this.closingDay = closingDay;
-		this.dueDay = dueDay;
 	}
 
 	public UUID getId() {
@@ -79,14 +69,6 @@ public class Account {
 
 	public AccountType getType() {
 		return type;
-	}
-
-	public Integer getClosingDay() {
-		return closingDay;
-	}
-
-	public Integer getDueDay() {
-		return dueDay;
 	}
 
 	public Instant getCreatedAt() {

@@ -23,34 +23,23 @@ export class AccountsPanel implements OnInit {
 
   readonly form = this.formBuilder.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
-    type: ['CHECKING' as AccountType, Validators.required],
-    closingDay: [null as number | null, [Validators.min(1), Validators.max(31)]],
-    dueDay: [null as number | null, [Validators.min(1), Validators.max(31)]]
+    type: ['CHECKING' as AccountType, Validators.required]
   });
 
   ngOnInit(): void {
     this.load();
   }
 
-  isCreditCard(): boolean {
-    return this.form.controls.type.value === 'CREDIT_CARD';
-  }
-
   openCreate(): void {
     this.editing.set(null);
-    this.form.reset({ name: '', type: 'CHECKING', closingDay: null, dueDay: null });
+    this.form.reset({ name: '', type: 'CHECKING' });
     this.showForm.set(true);
     this.errorMessage.set(null);
   }
 
   openEdit(account: Account): void {
     this.editing.set(account);
-    this.form.reset({
-      name: account.name,
-      type: account.type,
-      closingDay: account.closingDay,
-      dueDay: account.dueDay
-    });
+    this.form.reset({ name: account.name, type: account.type });
     this.showForm.set(true);
     this.errorMessage.set(null);
   }
@@ -63,10 +52,6 @@ export class AccountsPanel implements OnInit {
   submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      return;
-    }
-    if (this.isCreditCard() && (!this.form.controls.closingDay.value || !this.form.controls.dueDay.value)) {
-      this.errorMessage.set('Cartão de crédito exige dia de fechamento e de vencimento');
       return;
     }
     const payload = this.form.getRawValue();

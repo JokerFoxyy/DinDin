@@ -10,12 +10,12 @@ import java.util.UUID;
 
 public interface CardInvoiceRepository extends JpaRepository<CardInvoice, UUID> {
 
-	Optional<CardInvoice> findByAccountIdAndMonth(UUID accountId, LocalDate month);
+	Optional<CardInvoice> findByCardIdAndMonth(UUID cardId, LocalDate month);
 
-	List<CardInvoice> findByAccountIdIn(Collection<UUID> accountIds);
+	List<CardInvoice> findByCardIdIn(Collection<UUID> cardIds);
 
-	List<CardInvoice> findByAccountIdInAndMonthOrderByCreatedAtAsc(Collection<UUID> accountIds, LocalDate month);
+	List<CardInvoice> findByCardIdInAndMonthOrderByCreatedAtAsc(Collection<UUID> cardIds, LocalDate month);
 
-	void deleteByAccountIdIn(Collection<UUID> accountIds);
+	void deleteByCardIdIn(Collection<UUID> cardIds);
 
 }

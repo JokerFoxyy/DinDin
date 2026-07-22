@@ -41,8 +41,9 @@ class InvoiceFlowIntegrationTest {
 				Map.of("email", "fatura-" + UUID.randomUUID() + "@poupito.com", "password", "senha-forte-123"),
 				String.class);
 		headers = AuthTestSupport.bearer(register);
-		cardId = idOf(post("/v1/accounts",
-				Map.of("name", "Nubank", "type", "CREDIT_CARD", "closingDay", 28, "dueDay", 7)));
+		String accountId = idOf(post("/v1/accounts", Map.of("name", "Nubank Conta", "type", "CHECKING")));
+		cardId = idOf(post("/v1/cards",
+				Map.of("name", "Nubank", "accountId", accountId, "closingDay", 28, "dueDay", 7)));
 		categoryId = idOf(post("/v1/categories", Map.of("name", "Mercado", "kind", "EXPENSE")));
 	}
 
@@ -60,7 +61,7 @@ class InvoiceFlowIntegrationTest {
 
 	private void purchase(String amount, String date) {
 		post("/v1/transactions", Map.of("description", "Compra", "amount", amount, "date", date,
-				"type", "EXPENSE", "accountId", cardId, "categoryId", categoryId));
+				"type", "EXPENSE", "cardId", cardId, "categoryId", categoryId));
 	}
 
 	private String openInvoiceId() throws Exception {

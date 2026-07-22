@@ -45,13 +45,14 @@ public class TransactionController {
 			@AuthenticationPrincipal AuthenticatedUser user,
 			@RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth month,
 			@RequestParam(required = false) UUID accountId,
+			@RequestParam(required = false) UUID cardId,
 			@RequestParam(required = false) UUID categoryId,
 			@RequestParam(required = false) TransactionType type,
 			@RequestParam(required = false) String q,
 			@RequestParam(required = false) String tag,
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "50") int size) {
-		return transactionService.search(user.id(), month, accountId, categoryId, type, q, tag, page, size);
+		return transactionService.search(user.id(), month, accountId, cardId, categoryId, type, q, tag, page, size);
 	}
 
 	@GetMapping("/export")
@@ -59,13 +60,14 @@ public class TransactionController {
 			@AuthenticationPrincipal AuthenticatedUser user,
 			@RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth month,
 			@RequestParam(required = false) UUID accountId,
+			@RequestParam(required = false) UUID cardId,
 			@RequestParam(required = false) UUID categoryId,
 			@RequestParam(required = false) TransactionType type,
 			@RequestParam(required = false) String q,
 			@RequestParam(required = false) String tag,
 			@RequestParam(defaultValue = "csv") String format) {
 		TransactionExportService.ExportFile file = transactionExportService.export(
-				user.id(), month, accountId, categoryId, type, q, tag, format);
+				user.id(), month, accountId, cardId, categoryId, type, q, tag, format);
 		return ResponseEntity.ok()
 				.contentType(MediaType.parseMediaType(file.contentType()))
 				.header(HttpHeaders.CONTENT_DISPOSITION,

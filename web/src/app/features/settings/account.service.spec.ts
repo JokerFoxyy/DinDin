@@ -9,7 +9,7 @@ describe('AccountService', () => {
   let service: AccountService;
   let httpMock: HttpTestingController;
 
-  const account: Account = { id: '1', name: 'Nubank', type: 'CREDIT_CARD', closingDay: 28, dueDay: 7 };
+  const account: Account = { id: '1', name: 'Nubank', type: 'CHECKING' };
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -33,7 +33,7 @@ describe('AccountService', () => {
   });
 
   it('should create an account', () => {
-    service.create({ name: 'Nubank', type: 'CREDIT_CARD', closingDay: 28, dueDay: 7 }).subscribe();
+    service.create({ name: 'Nubank', type: 'CHECKING' }).subscribe();
 
     const request = httpMock.expectOne('/api/v1/accounts');
     expect(request.request.method).toBe('POST');
@@ -42,7 +42,7 @@ describe('AccountService', () => {
   });
 
   it('should update an account', () => {
-    service.update('1', { name: 'Nubank UV', type: 'CREDIT_CARD', closingDay: 25, dueDay: 4 }).subscribe();
+    service.update('1', { name: 'Nubank UV', type: 'CHECKING' }).subscribe();
 
     const request = httpMock.expectOne('/api/v1/accounts/1');
     expect(request.request.method).toBe('PUT');

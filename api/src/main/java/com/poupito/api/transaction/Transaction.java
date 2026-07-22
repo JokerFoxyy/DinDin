@@ -32,8 +32,13 @@ public class Transaction {
 	@Column(name = "user_id", nullable = false)
 	private UUID userId;
 
-	@Column(name = "account_id", nullable = false)
+	/** Conta (débito/dinheiro) — nula quando o lançamento é no cartão (xor com cardId). */
+	@Column(name = "account_id")
 	private UUID accountId;
+
+	/** Cartão de crédito — nulo quando o lançamento é direto na conta (xor com accountId). */
+	@Column(name = "card_id")
+	private UUID cardId;
 
 	@Column(name = "category_id")
 	private UUID categoryId;
@@ -80,10 +85,11 @@ public class Transaction {
 	protected Transaction() {
 	}
 
-	public Transaction(UUID userId, UUID accountId, UUID categoryId, UUID invoiceId,
+	private Transaction(UUID userId, UUID accountId, UUID cardId, UUID categoryId, UUID invoiceId,
 			String description, BigDecimal amount, LocalDate date, TransactionType type) {
 		this.userId = userId;
 		this.accountId = accountId;
+		this.cardId = cardId;
 		this.categoryId = categoryId;
 		this.invoiceId = invoiceId;
 		this.description = description;
@@ -92,21 +98,32 @@ public class Transaction {
 		this.type = type;
 	}
 
-	/** Transação gerada por um fixo: vinculada ao recurring e nasce não-paga. */
-	public static Transaction materialized(UUID userId, UUID accountId, UUID categoryId, UUID invoiceId,
+	/** Lançamento direto na conta (débito/dinheiro). */
+	public static Transaction forAccount(UUID userId, UUID accountId, UUID categoryId,
+			String description, BigDecimal amount, LocalDate date, TransactionType type) {
+		return new Transaction(userId, accountId, null, categoryId, null, description, amount, date, type);
+	}
+
+	/** Lançamento no cartão de crédito, vinculado à fatura do período. */
+	public static Transaction forCard(UUID userId, UUID cardId, UUID categoryId, UUID invoiceId,
+			String description, BigDecimal amount, LocalDate date, TransactionType type) {
+		return new Transaction(userId, null, cardId, categoryId, invoiceId, description, amount, date, type);
+	}
+
+	/** Transação gerada por um fixo (sempre em conta): vinculada ao recurring e nasce não-paga. */
+	public static Transaction materialized(UUID userId, UUID accountId, UUID categoryId,
 			String description, BigDecimal amount, LocalDate date, TransactionType type, UUID recurringId) {
-		Transaction transaction = new Transaction(userId, accountId, categoryId, invoiceId,
-				description, amount, date, type);
+		Transaction transaction = forAccount(userId, accountId, categoryId, description, amount, date, type);
 		transaction.recurringId = recurringId;
 		transaction.paid = false;
 		return transaction;
 	}
 
-	/** Uma parcela (1..count) de uma compra parcelada; amount é o valor da própria parcela. */
-	public static Transaction installment(UUID userId, UUID accountId, UUID categoryId, UUID invoiceId,
+	/** Uma parcela (1..count) de uma compra parcelada no cartão; amount é o valor da própria parcela. */
+	public static Transaction installment(UUID userId, UUID cardId, UUID categoryId, UUID invoiceId,
 			String description, BigDecimal amount, LocalDate date, TransactionType type,
 			UUID installmentGroupId, int installmentNumber, int installmentCount) {
-		Transaction transaction = new Transaction(userId, accountId, categoryId, invoiceId,
+		Transaction transaction = forCard(userId, cardId, categoryId, invoiceId,
 				description, amount, date, type);
 		transaction.installmentGroupId = installmentGroupId;
 		transaction.installmentNumber = installmentNumber;
@@ -121,9 +138,10 @@ public class Transaction {
 		}
 	}
 
-	public void update(UUID accountId, UUID categoryId, UUID invoiceId,
+	public void update(UUID accountId, UUID cardId, UUID categoryId, UUID invoiceId,
 			String description, BigDecimal amount, LocalDate date, TransactionType type) {
 		this.accountId = accountId;
+		this.cardId = cardId;
 		this.categoryId = categoryId;
 		this.invoiceId = invoiceId;
 		this.description = description;
@@ -147,6 +165,10 @@ public class Transaction {
 
 	public UUID getAccountId() {
 		return accountId;
+	}
+
+	public UUID getCardId() {
+		return cardId;
 	}
 
 	public UUID getCategoryId() {

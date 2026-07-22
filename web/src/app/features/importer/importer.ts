@@ -3,16 +3,23 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { AccountService } from '../settings/account.service';
+import { CardService } from '../settings/card.service';
 import { CategoryService } from '../settings/category.service';
-import { AccountType, CategoryKind } from '../settings/settings.models';
+import { Account, Card, AccountType, CategoryKind } from '../settings/settings.models';
 import { ImportService } from './import.service';
-import { ImportCommitResult, ImportMapping, ImportPreview } from './import.models';
+import { AccountMappingChoice, ImportCommitResult, ImportMapping, ImportPreview } from './import.models';
+
+type AccountMappingMode = 'existing-account' | 'existing-card' | 'create-account' | 'create-card';
 
 interface AccountMappingRow {
   name: string;
-  mode: 'existing' | 'create';
-  existingId: string;
+  mode: AccountMappingMode;
+  existingAccountId: string;
+  existingCardId: string;
   createType: AccountType;
+  cardAccountId: string;
+  cardClosingDay: number;
+  cardDueDay: number;
 }
 
 interface CategoryMappingRow {
@@ -31,12 +38,14 @@ interface CategoryMappingRow {
 export class Importer implements OnInit {
   private readonly importService = inject(ImportService);
   private readonly accountService = inject(AccountService);
+  private readonly cardService = inject(CardService);
   private readonly categoryService = inject(CategoryService);
 
   readonly year = signal(2026);
   readonly file = signal<File | null>(null);
   readonly preview = signal<ImportPreview | null>(null);
-  readonly accounts = signal<{ id: string; name: string }[]>([]);
+  readonly accounts = signal<Account[]>([]);
+  readonly cards = signal<Card[]>([]);
   readonly categories = signal<{ id: string; name: string }[]>([]);
   readonly accountMappings = signal<AccountMappingRow[]>([]);
   readonly categoryMappings = signal<CategoryMappingRow[]>([]);
@@ -44,11 +53,12 @@ export class Importer implements OnInit {
   readonly errorMessage = signal<string | null>(null);
   readonly loading = signal(false);
 
-  readonly accountTypes: AccountType[] = ['CHECKING', 'CREDIT_CARD', 'CASH'];
+  readonly accountTypes: AccountType[] = ['CHECKING', 'CASH'];
   readonly categoryKinds: CategoryKind[] = ['EXPENSE', 'INCOME'];
 
   ngOnInit(): void {
     this.accountService.list().subscribe((accounts) => this.accounts.set(accounts));
+    this.cardService.list().subscribe((cards) => this.cards.set(cards));
     this.categoryService.list().subscribe((categories) => this.categories.set(categories));
   }
 
@@ -78,7 +88,14 @@ export class Importer implements OnInit {
       next: (preview) => {
         this.preview.set(preview);
         this.accountMappings.set(preview.unmatchedAccounts.map((name) => ({
-          name, mode: 'create' as const, existingId: '', createType: 'CHECKING' as AccountType
+          name,
+          mode: 'create-account' as AccountMappingMode,
+          existingAccountId: '',
+          existingCardId: '',
+          createType: 'CHECKING' as AccountType,
+          cardAccountId: this.accounts()[0]?.id ?? '',
+          cardClosingDay: 1,
+          cardDueDay: 10
         })));
         this.categoryMappings.set(preview.unmatchedCategories.map((name) => ({
           name, mode: 'create' as const, existingId: '', createKind: 'EXPENSE' as CategoryKind
@@ -106,10 +123,7 @@ export class Importer implements OnInit {
       return;
     }
     const mapping: ImportMapping = {
-      accounts: Object.fromEntries(this.accountMappings().map((m) => [m.name, {
-        existingAccountId: m.mode === 'existing' ? m.existingId : null,
-        createType: m.mode === 'create' ? m.createType : null
-      }])),
+      accounts: Object.fromEntries(this.accountMappings().map((m) => [m.name, this.toAccountChoice(m)])),
       categories: Object.fromEntries(this.categoryMappings().map((m) => [m.name, {
         existingCategoryId: m.mode === 'existing' ? m.existingId : null,
         createKind: m.mode === 'create' ? m.createKind : null
@@ -128,5 +142,16 @@ export class Importer implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+  private toAccountChoice(m: AccountMappingRow): AccountMappingChoice {
+    return {
+      existingAccountId: m.mode === 'existing-account' ? m.existingAccountId : null,
+      existingCardId: m.mode === 'existing-card' ? m.existingCardId : null,
+      createType: m.mode === 'create-account' ? m.createType : null,
+      createCard: m.mode === 'create-card'
+        ? { accountId: m.cardAccountId, closingDay: m.cardClosingDay, dueDay: m.cardDueDay }
+        : null
+    };
   }
 }

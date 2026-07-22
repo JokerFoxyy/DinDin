@@ -46,7 +46,7 @@ class RecurringServiceTest {
 	private RecurringService service;
 
 	private Account account() {
-		Account account = new Account(userId, "Uniclass", AccountType.CHECKING, null, null);
+		Account account = new Account(userId, "Uniclass", AccountType.CHECKING);
 		ReflectionTestUtils.setField(account, "id", UUID.randomUUID());
 		return account;
 	}

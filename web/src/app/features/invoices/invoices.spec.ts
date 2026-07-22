@@ -3,6 +3,8 @@ import { of, throwError } from 'rxjs';
 
 import { Invoices } from './invoices';
 import { InvoiceService } from './invoice.service';
+import { AccountService } from '../settings/account.service';
+import { Account } from '../settings/settings.models';
 import { InvoiceDetail, InvoiceSummary } from './invoice.models';
 
 describe('Invoices', () => {
@@ -10,8 +12,9 @@ describe('Invoices', () => {
   let component: Invoices;
   let invoiceService: jasmine.SpyObj<InvoiceService>;
 
+  const accounts: Account[] = [{ id: 'a1', name: 'Uniclass', type: 'CHECKING' }];
   const openInvoice: InvoiceSummary = {
-    id: 'i1', accountId: 'a1', accountName: 'Nubank', month: '2026-07-01',
+    id: 'i1', cardId: 'k1', cardName: 'Nubank', month: '2026-07-01',
     closingDate: '2026-07-28', dueDate: '2026-08-07',
     launchedTotal: 100, declaredTotal: null, adjustment: 0, status: 'OPEN'
   };
@@ -30,10 +33,15 @@ describe('Invoices', () => {
     invoiceService = jasmine.createSpyObj<InvoiceService>('InvoiceService',
       ['list', 'detail', 'close', 'pay', 'reopen']);
     invoiceService.list.and.returnValue(of([openInvoice]));
+    const accountService = jasmine.createSpyObj<AccountService>('AccountService', ['list']);
+    accountService.list.and.returnValue(of(accounts));
 
     await TestBed.configureTestingModule({
       imports: [Invoices],
-      providers: [{ provide: InvoiceService, useValue: invoiceService }]
+      providers: [
+        { provide: InvoiceService, useValue: invoiceService },
+        { provide: AccountService, useValue: accountService }
+      ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(Invoices);
@@ -77,12 +85,39 @@ describe('Invoices', () => {
     expect(component.errorMessage()).toContain('valor da fatura');
   });
 
-  it('should pay a closed invoice', () => {
+  it('should default the pay account to the first account when starting to pay', () => {
+    component.startPay(closedInvoice);
+
+    expect(component.payingId()).toBe('i1');
+    expect(component.payAccountId()).toBe('a1');
+  });
+
+  it('should pay a closed invoice with the chosen account', () => {
     invoiceService.pay.and.returnValue(of(detail));
+    component.startPay(closedInvoice);
+    component.onPayAccountChange('a1');
 
-    component.pay(closedInvoice);
+    component.confirmPay(closedInvoice);
 
-    expect(invoiceService.pay).toHaveBeenCalledWith('i1');
+    expect(invoiceService.pay).toHaveBeenCalledWith('i1', 'a1');
+    expect(component.payingId()).toBeNull();
+  });
+
+  it('should not pay when no account is chosen', () => {
+    component.startPay(closedInvoice);
+    component.onPayAccountChange('');
+
+    component.confirmPay(closedInvoice);
+
+    expect(invoiceService.pay).not.toHaveBeenCalled();
+    expect(component.errorMessage()).toContain('conta');
+  });
+
+  it('should cancel the pay form', () => {
+    component.startPay(closedInvoice);
+    component.cancelPay();
+
+    expect(component.payingId()).toBeNull();
   });
 
   it('should reopen a closed invoice', () => {
@@ -131,7 +166,8 @@ describe('Invoices', () => {
     component.toggleDetail(closedInvoice);
     expect(invoiceService.detail).toHaveBeenCalledTimes(1);
 
-    component.pay(closedInvoice);
+    component.startPay(closedInvoice);
+    component.confirmPay(closedInvoice);
 
     expect(invoiceService.detail).toHaveBeenCalledTimes(2);
   });

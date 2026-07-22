@@ -14,13 +14,16 @@ public final class TransactionSpecifications {
 	}
 
 	public static Specification<Transaction> search(UUID userId, YearMonth month,
-			UUID accountId, UUID categoryId, TransactionType type, String q, String tag) {
+			UUID accountId, UUID cardId, UUID categoryId, TransactionType type, String q, String tag) {
 		return (root, query, cb) -> {
 			List<Predicate> predicates = new ArrayList<>();
 			predicates.add(cb.equal(root.get("userId"), userId));
 			predicates.add(cb.between(root.get("date"), month.atDay(1), month.atEndOfMonth()));
 			if (accountId != null) {
 				predicates.add(cb.equal(root.get("accountId"), accountId));
+			}
+			if (cardId != null) {
+				predicates.add(cb.equal(root.get("cardId"), cardId));
 			}
 			if (categoryId != null) {
 				predicates.add(cb.equal(root.get("categoryId"), categoryId));

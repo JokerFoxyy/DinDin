@@ -33,27 +33,55 @@
     <p class="empty">{{ data.rows.length }} lançamento(s) encontrado(s) na planilha.</p>
 
     @if (accountMappings().length > 0) {
-      <h2>Contas não encontradas</h2>
+      <h2>Contas e cartões não encontrados</h2>
+      <p class="empty">Nomes da seção "Cartão de Crédito" da planilha devem virar cartões (atrelados a uma conta).</p>
       @for (mapping of accountMappings(); track mapping.name; let i = $index) {
         <div class="inline-form">
           <strong>{{ mapping.name }}</strong>
           <select [value]="mapping.mode" (change)="updateAccountMapping(i, { mode: $any($event.target).value })">
-            <option value="create">Criar nova conta</option>
-            <option value="existing">Usar conta existente</option>
+            <option value="create-account">Criar nova conta</option>
+            <option value="create-card">Criar novo cartão</option>
+            <option value="existing-account">Usar conta existente</option>
+            <option value="existing-card">Usar cartão existente</option>
           </select>
-          @if (mapping.mode === 'create') {
-            <select [value]="mapping.createType" (change)="updateAccountMapping(i, { createType: $any($event.target).value })">
-              @for (type of accountTypes; track type) {
-                <option [value]="type">{{ type }}</option>
-              }
-            </select>
-          } @else {
-            <select [value]="mapping.existingId" (change)="updateAccountMapping(i, { existingId: $any($event.target).value })">
-              <option value="">Selecione...</option>
-              @for (account of accounts(); track account.id) {
-                <option [value]="account.id">{{ account.name }}</option>
-              }
-            </select>
+          @switch (mapping.mode) {
+            @case ('create-account') {
+              <select [value]="mapping.createType" (change)="updateAccountMapping(i, { createType: $any($event.target).value })">
+                @for (type of accountTypes; track type) {
+                  <option [value]="type">{{ type === 'CHECKING' ? 'Conta corrente' : 'Dinheiro' }}</option>
+                }
+              </select>
+            }
+            @case ('create-card') {
+              <select [value]="mapping.cardAccountId" (change)="updateAccountMapping(i, { cardAccountId: $any($event.target).value })">
+                <option value="">Conta vinculada...</option>
+                @for (account of accounts(); track account.id) {
+                  <option [value]="account.id">{{ account.name }}</option>
+                }
+              </select>
+              <input type="number" min="1" max="31" [value]="mapping.cardClosingDay"
+                     aria-label="Dia de fechamento" title="Dia de fechamento"
+                     (change)="updateAccountMapping(i, { cardClosingDay: +$any($event.target).value })" />
+              <input type="number" min="1" max="31" [value]="mapping.cardDueDay"
+                     aria-label="Dia de vencimento" title="Dia de vencimento"
+                     (change)="updateAccountMapping(i, { cardDueDay: +$any($event.target).value })" />
+            }
+            @case ('existing-account') {
+              <select [value]="mapping.existingAccountId" (change)="updateAccountMapping(i, { existingAccountId: $any($event.target).value })">
+                <option value="">Selecione...</option>
+                @for (account of accounts(); track account.id) {
+                  <option [value]="account.id">{{ account.name }}</option>
+                }
+              </select>
+            }
+            @case ('existing-card') {
+              <select [value]="mapping.existingCardId" (change)="updateAccountMapping(i, { existingCardId: $any($event.target).value })">
+                <option value="">Selecione...</option>
+                @for (card of cards(); track card.id) {
+                  <option [value]="card.id">{{ card.name }}</option>
+                }
+              </select>
+            }
           }
         </div>
       }

@@ -23,8 +23,8 @@ public class CardInvoice {
 	@GeneratedValue(strategy = GenerationType.UUID)
 	private UUID id;
 
-	@Column(name = "account_id", nullable = false)
-	private UUID accountId;
+	@Column(name = "card_id", nullable = false)
+	private UUID cardId;
 
 	/** Primeiro dia do mês da fatura. */
 	@Column(nullable = false)
@@ -49,8 +49,8 @@ public class CardInvoice {
 	protected CardInvoice() {
 	}
 
-	public CardInvoice(UUID accountId, LocalDate month, LocalDate closingDate, LocalDate dueDate) {
-		this.accountId = accountId;
+	public CardInvoice(UUID cardId, LocalDate month, LocalDate closingDate, LocalDate dueDate) {
+		this.cardId = cardId;
 		this.month = month;
 		this.closingDate = closingDate;
 		this.dueDate = dueDate;
@@ -80,8 +80,8 @@ public class CardInvoice {
 		return id;
 	}
 
-	public UUID getAccountId() {
-		return accountId;
+	public UUID getCardId() {
+		return cardId;
 	}
 
 	public LocalDate getMonth() {

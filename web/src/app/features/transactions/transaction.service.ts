@@ -38,6 +38,9 @@ export class TransactionService {
     if (filters.accountId) {
       params = params.set('accountId', filters.accountId);
     }
+    if (filters.cardId) {
+      params = params.set('cardId', filters.cardId);
+    }
     if (filters.categoryId) {
       params = params.set('categoryId', filters.categoryId);
     }

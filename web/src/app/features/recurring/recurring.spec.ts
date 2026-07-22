@@ -13,7 +13,7 @@ describe('Recurring', () => {
   let component: Recurring;
   let recurringService: jasmine.SpyObj<RecurringService>;
 
-  const accounts: Account[] = [{ id: 'a1', name: 'Uniclass', type: 'CHECKING', closingDay: null, dueDay: null }];
+  const accounts: Account[] = [{ id: 'a1', name: 'Uniclass', type: 'CHECKING' }];
   const categories: Category[] = [
     { id: 'c1', name: 'Assinaturas', icon: '🔁', color: '#a371f7', kind: 'EXPENSE' },
     { id: 'c2', name: 'Salário', icon: '💰', color: '#3fb950', kind: 'INCOME' }

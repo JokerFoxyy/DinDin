@@ -1,4 +1,6 @@
-export type TransactionType = 'EXPENSE' | 'INCOME' | 'INVOICE_ADJUSTMENT';
+import { PaymentMethod } from '../settings/settings.models';
+
+export type TransactionType = 'EXPENSE' | 'INCOME' | 'INVOICE_ADJUSTMENT' | 'INVOICE_PAYMENT';
 
 export interface Transaction {
   id: string;
@@ -6,8 +8,11 @@ export interface Transaction {
   amount: number;
   date: string; // yyyy-MM-dd
   type: TransactionType;
-  accountId: string;
+  accountId: string | null;
   accountName: string | null;
+  cardId: string | null;
+  cardName: string | null;
+  method: PaymentMethod;
   categoryId: string | null;
   categoryName: string | null;
   categoryIcon: string | null;
@@ -23,7 +28,8 @@ export interface TransactionPayload {
   amount: number;
   date: string;
   type: TransactionType;
-  accountId: string;
+  accountId?: string;
+  cardId?: string;
   categoryId: string;
   tags: string[];
   installments?: number;
@@ -39,13 +45,14 @@ export interface PageResponse<T> {
 
 export interface TransactionFilters {
   accountId?: string;
+  cardId?: string;
   categoryId?: string;
   type?: TransactionType;
   q?: string;
   tag?: string;
 }
 
-export const TRANSACTION_TYPE_LABELS: Record<Exclude<TransactionType, 'INVOICE_ADJUSTMENT'>, string> = {
+export const TRANSACTION_TYPE_LABELS: Record<Exclude<TransactionType, 'INVOICE_ADJUSTMENT' | 'INVOICE_PAYMENT'>, string> = {
   EXPENSE: 'Gasto',
   INCOME: 'Entrada'
 };

@@ -1,7 +1,9 @@
 package com.poupito.api.transaction.dto;
 
 import com.poupito.api.account.Account;
+import com.poupito.api.card.Card;
 import com.poupito.api.category.Category;
+import com.poupito.api.transaction.PaymentMethod;
 import com.poupito.api.transaction.Transaction;
 import com.poupito.api.transaction.TransactionType;
 
@@ -18,6 +20,9 @@ public record TransactionResponse(
 		TransactionType type,
 		UUID accountId,
 		String accountName,
+		UUID cardId,
+		String cardName,
+		PaymentMethod method,
 		UUID categoryId,
 		String categoryName,
 		String categoryIcon,
@@ -29,7 +34,7 @@ public record TransactionResponse(
 		Integer installmentNumber,
 		Integer installmentCount) {
 
-	public static TransactionResponse from(Transaction transaction, Account account,
+	public static TransactionResponse from(Transaction transaction, Account account, Card card,
 			Category category, LocalDate invoiceMonth) {
 		return new TransactionResponse(
 				transaction.getId(),
@@ -39,6 +44,9 @@ public record TransactionResponse(
 				transaction.getType(),
 				transaction.getAccountId(),
 				account != null ? account.getName() : null,
+				transaction.getCardId(),
+				card != null ? card.getName() : null,
+				PaymentMethod.of(transaction, account != null ? account.getType() : null),
 				transaction.getCategoryId(),
 				category != null ? category.getName() : null,
 				category != null ? category.getIcon() : null,
