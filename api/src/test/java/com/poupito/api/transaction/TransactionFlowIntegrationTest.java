@@ -46,8 +46,9 @@ class TransactionFlowIntegrationTest {
 		headers = AuthTestSupport.bearer(register);
 
 		checkingId = idOf(post("/v1/accounts", Map.of("name", "Uniclass", "type", "CHECKING")));
-		cardId = idOf(post("/v1/accounts",
-				Map.of("name", "Nubank", "type", "CREDIT_CARD", "closingDay", 28, "dueDay", 7)));
+		String cardAccountId = idOf(post("/v1/accounts", Map.of("name", "Nubank Conta", "type", "CHECKING")));
+		cardId = idOf(post("/v1/cards",
+				Map.of("name", "Nubank", "accountId", cardAccountId, "closingDay", 28, "dueDay", 7)));
 		expenseCategoryId = idOf(post("/v1/categories", Map.of("name", "Mercado", "kind", "EXPENSE")));
 		incomeCategoryId = idOf(post("/v1/categories", Map.of("name", "Salário", "kind", "INCOME")));
 	}
@@ -74,6 +75,12 @@ class TransactionFlowIntegrationTest {
 				"type", type, "accountId", accountId, "categoryId", categoryId);
 	}
 
+	private Map<String, Object> cardTransaction(String description, String amount, String date,
+			String type, String cardId, String categoryId) {
+		return Map.of("description", description, "amount", amount, "date", date,
+				"type", type, "cardId", cardId, "categoryId", categoryId);
+	}
+
 	private Map<String, Object> transactionWithTags(String description, String amount, String date,
 			String type, String accountId, String categoryId, List<String> tags) {
 		return Map.of("description", description, "amount", amount, "date", date,
@@ -84,9 +91,9 @@ class TransactionFlowIntegrationTest {
 	void shouldLinkCardPurchasesToCorrectInvoices_whenDatesCrossClosingDay() throws Exception {
 		// antes do fechamento (dia 28) → fatura de julho; no dia do fechamento → fatura de agosto
 		ResponseEntity<String> before = post("/v1/transactions",
-				transaction("Compra antes", "100.00", "2026-07-27", "EXPENSE", cardId, expenseCategoryId));
+				cardTransaction("Compra antes", "100.00", "2026-07-27", "EXPENSE", cardId, expenseCategoryId));
 		ResponseEntity<String> onClosing = post("/v1/transactions",
-				transaction("Compra no fechamento", "50.00", "2026-07-28", "EXPENSE", cardId, expenseCategoryId));
+				cardTransaction("Compra no fechamento", "50.00", "2026-07-28", "EXPENSE", cardId, expenseCategoryId));
 
 		assertThat(before.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 		assertThat(objectMapper.readTree(before.getBody()).get("invoiceMonth").asText()).isEqualTo("2026-07-01");
@@ -105,7 +112,7 @@ class TransactionFlowIntegrationTest {
 	@Test
 	void shouldFilterByMonthAccountAndCategory_whenSearching() throws Exception {
 		post("/v1/transactions", transaction("Julho corrente", "10.00", "2026-07-05", "EXPENSE", checkingId, expenseCategoryId));
-		post("/v1/transactions", transaction("Julho cartão", "20.00", "2026-07-06", "EXPENSE", cardId, expenseCategoryId));
+		post("/v1/transactions", cardTransaction("Julho cartão", "20.00", "2026-07-06", "EXPENSE", cardId, expenseCategoryId));
 		post("/v1/transactions", transaction("Salário julho", "5000.00", "2026-07-01", "INCOME", checkingId, incomeCategoryId));
 		post("/v1/transactions", transaction("Junho", "30.00", "2026-06-15", "EXPENSE", checkingId, expenseCategoryId));
 
@@ -113,7 +120,7 @@ class TransactionFlowIntegrationTest {
 		assertThat(july.get("totalElements").asLong()).isEqualTo(3);
 
 		JsonNode julyCard = objectMapper.readTree(
-				get("/v1/transactions?month=2026-07&accountId=" + cardId).getBody());
+				get("/v1/transactions?month=2026-07&cardId=" + cardId).getBody());
 		assertThat(julyCard.get("totalElements").asLong()).isEqualTo(1);
 		assertThat(julyCard.get("content").get(0).get("description").asText()).isEqualTo("Julho cartão");
 
@@ -165,7 +172,7 @@ class TransactionFlowIntegrationTest {
 	void shouldCreateInstallmentsOnConsecutiveMonths_linkedToTheirOwnInvoice() throws Exception {
 		ResponseEntity<String> created = post("/v1/transactions", Map.of(
 				"description", "Notebook", "amount", "500.00", "date", "2026-07-09", "type", "EXPENSE",
-				"accountId", cardId, "categoryId", expenseCategoryId, "installments", 3));
+				"cardId", cardId, "categoryId", expenseCategoryId, "installments", 3));
 
 		JsonNode first = objectMapper.readTree(created.getBody());
 		assertThat(first.get("installmentNumber").asInt()).isEqualTo(1);
@@ -193,7 +200,7 @@ class TransactionFlowIntegrationTest {
 	void shouldDeleteOnlyFutureInstallments_whenScopeIsGroup() throws Exception {
 		post("/v1/transactions", Map.of(
 				"description", "Notebook", "amount", "100.00", "date", "2026-07-09", "type", "EXPENSE",
-				"accountId", checkingId, "categoryId", expenseCategoryId, "installments", 4));
+				"cardId", cardId, "categoryId", expenseCategoryId, "installments", 4));
 		String secondId = objectMapper.readTree(get("/v1/transactions?month=2026-08").getBody())
 				.get("content").get(0).get("id").asText();
 

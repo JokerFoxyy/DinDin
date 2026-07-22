@@ -3,11 +3,7 @@ package com.poupito.api.recurring;
 import com.poupito.api.account.Account;
 import com.poupito.api.account.AccountRepository;
 import com.poupito.api.account.AccountType;
-import com.poupito.api.category.Category;
-import com.poupito.api.category.CategoryKind;
 import com.poupito.api.category.CategoryRepository;
-import com.poupito.api.invoice.CardInvoice;
-import com.poupito.api.invoice.CardInvoiceService;
 import com.poupito.api.recurring.dto.OccurrenceResponse;
 import com.poupito.api.transaction.Transaction;
 import com.poupito.api.transaction.TransactionRepository;
@@ -47,32 +43,24 @@ class RecurringMaterializationServiceTest {
 	private AccountRepository accountRepository;
 	@Mock
 	private CategoryRepository categoryRepository;
-	@Mock
-	private CardInvoiceService cardInvoiceService;
 
 	@InjectMocks
 	private RecurringMaterializationService service;
 
-	private RecurringTransaction recurring(AccountType accountType, int day, LocalDate endDate, boolean active) {
-		Account account = new Account(userId, "Conta", accountType,
-				accountType == AccountType.CREDIT_CARD ? 28 : null,
-				accountType == AccountType.CREDIT_CARD ? 7 : null);
+	private RecurringTransaction recurring(int day, LocalDate endDate, boolean active) {
+		Account account = new Account(userId, "Conta", AccountType.CHECKING);
 		UUID accountId = UUID.randomUUID();
 		ReflectionTestUtils.setField(account, "id", accountId);
-		lenientAccount(accountId, account);
+		org.mockito.Mockito.lenient().when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
 		RecurringTransaction recurring = new RecurringTransaction(userId, accountId, UUID.randomUUID(),
 				"Spotify", new BigDecimal("27.90"), TransactionType.EXPENSE, day, active, endDate);
 		ReflectionTestUtils.setField(recurring, "id", UUID.randomUUID());
 		return recurring;
 	}
 
-	private void lenientAccount(UUID accountId, Account account) {
-		org.mockito.Mockito.lenient().when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
-	}
-
 	@Test
 	void shouldMaterializeOccurrence_whenNoneExistsForTheMonth() {
-		RecurringTransaction recurring = recurring(AccountType.CHECKING, 10, null, true);
+		RecurringTransaction recurring = recurring(10, null, true);
 		when(transactionRepository.findByRecurringIdAndDateBetween(eq(recurring.getId()), any(), any()))
 				.thenReturn(Optional.empty());
 		when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -81,12 +69,14 @@ class RecurringMaterializationServiceTest {
 
 		assertThat(created.getDate()).isEqualTo(LocalDate.of(2026, 7, 10));
 		assertThat(created.isPaid()).isFalse();
+		assertThat(created.getAccountId()).isEqualTo(recurring.getAccountId());
+		assertThat(created.getCardId()).isNull();
 		assertThat(created.getRecurringId()).isEqualTo(recurring.getId());
 	}
 
 	@Test
 	void shouldClampDayToEndOfMonth_whenMaterializing() {
-		RecurringTransaction recurring = recurring(AccountType.CHECKING, 31, null, true);
+		RecurringTransaction recurring = recurring(31, null, true);
 		when(transactionRepository.findByRecurringIdAndDateBetween(any(), any(), any())).thenReturn(Optional.empty());
 		when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -96,25 +86,10 @@ class RecurringMaterializationServiceTest {
 	}
 
 	@Test
-	void shouldLinkInvoice_whenAccountIsCreditCard() {
-		RecurringTransaction recurring = recurring(AccountType.CREDIT_CARD, 10, null, true);
-		CardInvoice invoice = new CardInvoice(recurring.getAccountId(), LocalDate.of(2026, 7, 1),
-				LocalDate.of(2026, 7, 28), LocalDate.of(2026, 8, 7));
-		ReflectionTestUtils.setField(invoice, "id", UUID.randomUUID());
-		when(transactionRepository.findByRecurringIdAndDateBetween(any(), any(), any())).thenReturn(Optional.empty());
-		when(cardInvoiceService.getOrCreateInvoiceFor(any(), any())).thenReturn(invoice);
-		when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
-
-		Transaction created = service.materializeOccurrence(recurring, YearMonth.of(2026, 7));
-
-		assertThat(created.getInvoiceId()).isEqualTo(invoice.getId());
-	}
-
-	@Test
 	void shouldBeIdempotent_whenOccurrenceAlreadyExists() {
-		RecurringTransaction recurring = recurring(AccountType.CHECKING, 10, null, true);
+		RecurringTransaction recurring = recurring(10, null, true);
 		Transaction existing = Transaction.materialized(userId, recurring.getAccountId(), recurring.getCategoryId(),
-				null, "Spotify", new BigDecimal("27.90"), LocalDate.of(2026, 7, 10), TransactionType.EXPENSE,
+				"Spotify", new BigDecimal("27.90"), LocalDate.of(2026, 7, 10), TransactionType.EXPENSE,
 				recurring.getId());
 		when(transactionRepository.findByRecurringIdAndDateBetween(any(), any(), any()))
 				.thenReturn(Optional.of(existing));
@@ -127,7 +102,7 @@ class RecurringMaterializationServiceTest {
 
 	@Test
 	void shouldMaterializeForUserAndReturnOccurrences() {
-		RecurringTransaction recurring = recurring(AccountType.CHECKING, 10, null, true);
+		RecurringTransaction recurring = recurring(10, null, true);
 		when(recurringRepository.findAllByUserIdOrderByDescriptionAsc(userId)).thenReturn(List.of(recurring));
 		when(transactionRepository.findByRecurringIdAndDateBetween(any(), any(), any())).thenReturn(Optional.empty());
 		when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -140,7 +115,7 @@ class RecurringMaterializationServiceTest {
 
 	@Test
 	void shouldSkipEndedRecurring_whenListingOccurrences() {
-		RecurringTransaction ended = recurring(AccountType.CHECKING, 10, LocalDate.of(2026, 6, 30), true);
+		RecurringTransaction ended = recurring(10, LocalDate.of(2026, 6, 30), true);
 		when(recurringRepository.findAllByUserIdOrderByDescriptionAsc(userId)).thenReturn(List.of(ended));
 
 		List<OccurrenceResponse> occurrences = service.occurrencesFor(userId, YearMonth.of(2026, 7));
@@ -150,9 +125,9 @@ class RecurringMaterializationServiceTest {
 
 	@Test
 	void shouldReportOccurrenceStatus_whenTransactionExists() {
-		RecurringTransaction recurring = recurring(AccountType.CHECKING, 10, null, true);
+		RecurringTransaction recurring = recurring(10, null, true);
 		Transaction existing = Transaction.materialized(userId, recurring.getAccountId(), recurring.getCategoryId(),
-				null, "Spotify", new BigDecimal("27.90"), LocalDate.of(2026, 7, 10), TransactionType.EXPENSE,
+				"Spotify", new BigDecimal("27.90"), LocalDate.of(2026, 7, 10), TransactionType.EXPENSE,
 				recurring.getId());
 		ReflectionTestUtils.setField(existing, "id", UUID.randomUUID());
 		existing.markPaid(true);
@@ -170,7 +145,7 @@ class RecurringMaterializationServiceTest {
 
 	@Test
 	void shouldMaterializeActiveRecurringsInScheduledJob() {
-		RecurringTransaction active = recurring(AccountType.CHECKING, 10, null, true);
+		RecurringTransaction active = recurring(10, null, true);
 		when(recurringRepository.findAllByActiveTrue()).thenReturn(List.of(active));
 		when(transactionRepository.findByRecurringIdAndDateBetween(any(), any(), any())).thenReturn(Optional.empty());
 		when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));

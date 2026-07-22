@@ -1,6 +1,8 @@
 package com.poupito.api.account;
 
 import com.poupito.api.auth.refresh.RefreshTokenRepository;
+import com.poupito.api.card.Card;
+import com.poupito.api.card.CardRepository;
 import com.poupito.api.category.Category;
 import com.poupito.api.category.CategoryKind;
 import com.poupito.api.category.CategoryRepository;
@@ -50,6 +52,8 @@ class UserDataServiceTest {
 	@Mock
 	private AccountRepository accountRepository;
 	@Mock
+	private CardRepository cardRepository;
+	@Mock
 	private CategoryRepository categoryRepository;
 	@Mock
 	private TransactionRepository transactionRepository;
@@ -81,29 +85,32 @@ class UserDataServiceTest {
 
 	@Test
 	void shouldExportAllUserData() {
-		Account account = withId(new Account(userId, "Uniclass", AccountType.CHECKING, null, null));
+		Account account = withId(new Account(userId, "Uniclass", AccountType.CHECKING));
+		Card card = withId(new Card(userId, account.getId(), "Nubank", 28, 7));
 		Category category = withId(new Category(userId, "Mercado", "🛒", "#3fb950", CategoryKind.EXPENSE));
-		Transaction transaction = withId(new Transaction(userId, account.getId(), category.getId(), null,
+		Transaction transaction = withId(Transaction.forAccount(userId, account.getId(), category.getId(),
 				"Padaria", new BigDecimal("31.73"), LocalDate.of(2026, 7, 9), TransactionType.EXPENSE));
-		CardInvoice invoice = withId(new CardInvoice(account.getId(), LocalDate.of(2026, 7, 1),
+		CardInvoice invoice = withId(new CardInvoice(card.getId(), LocalDate.of(2026, 7, 1),
 				LocalDate.of(2026, 7, 28), LocalDate.of(2026, 8, 7)));
 		Investment investment = withId(new Investment(userId, "Tesouro Selic", AssetClass.RENDA_FIXA, "NuInvest"));
 		Goal goal = withId(new Goal(userId, "Reserva", new BigDecimal("12000.00"), LocalDate.of(2026, 12, 1)));
 
 		when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user()));
 		when(accountRepository.findAllByUserIdOrderByNameAsc(userId)).thenReturn(List.of(account));
+		when(cardRepository.findAllByUserIdOrderByNameAsc(userId)).thenReturn(List.of(card));
 		when(categoryRepository.findAllByUserIdOrderByNameAsc(userId)).thenReturn(List.of(category));
 		when(transactionRepository.findAllByUserIdOrderByDateAsc(userId)).thenReturn(List.of(transaction));
-		when(cardInvoiceRepository.findByAccountIdIn(anyList())).thenReturn(List.of(invoice));
+		when(cardInvoiceRepository.findByCardIdIn(anyList())).thenReturn(List.of(invoice));
 		when(recurringRepository.findAllByUserIdOrderByDescriptionAsc(userId)).thenReturn(List.of());
 		when(investmentRepository.findAllByUserIdOrderByCreatedAtAsc(userId)).thenReturn(List.of(investment));
 		when(goalRepository.findAllByUserIdOrderByCreatedAtAsc(userId)).thenReturn(List.of(goal));
 
 		Map<String, Object> export = service.export(userId);
 
-		assertThat(export).containsKeys("exportedAt", "user", "accounts", "categories",
+		assertThat(export).containsKeys("exportedAt", "user", "accounts", "cards", "categories",
 				"transactions", "cardInvoices", "recurringTransactions", "investments", "goals");
 		assertThat((List<?>) export.get("transactions")).hasSize(1);
+		assertThat((List<?>) export.get("cards")).hasSize(1);
 		assertThat(export.get("user").toString()).contains("victor@poupito.com");
 	}
 
@@ -116,18 +123,19 @@ class UserDataServiceTest {
 
 	@Test
 	void shouldDeleteAllUserDataInFkSafeOrder() {
-		Account account = withId(new Account(userId, "Uniclass", AccountType.CHECKING, null, null));
+		Card card = withId(new Card(userId, UUID.randomUUID(), "Nubank", 28, 7));
 		when(userRepository.existsById(userId)).thenReturn(true);
-		when(accountRepository.findAllByUserIdOrderByNameAsc(userId)).thenReturn(List.of(account));
+		when(cardRepository.findAllByUserId(userId)).thenReturn(List.of(card));
 
 		service.deleteAccount(userId);
 
-		InOrder order = inOrder(transactionRepository, recurringRepository, cardInvoiceRepository,
+		InOrder order = inOrder(transactionRepository, recurringRepository, cardInvoiceRepository, cardRepository,
 				categoryRepository, accountRepository, investmentRepository, goalRepository, refreshTokenRepository,
 				userRepository);
 		order.verify(transactionRepository).deleteByUserId(userId);
 		order.verify(recurringRepository).deleteByUserId(userId);
-		order.verify(cardInvoiceRepository).deleteByAccountIdIn(List.of(account.getId()));
+		order.verify(cardInvoiceRepository).deleteByCardIdIn(List.of(card.getId()));
+		order.verify(cardRepository).deleteByUserId(userId);
 		order.verify(categoryRepository).deleteByUserId(userId);
 		order.verify(accountRepository).deleteByUserId(userId);
 		order.verify(investmentRepository).deleteByUserId(userId);
@@ -137,13 +145,13 @@ class UserDataServiceTest {
 	}
 
 	@Test
-	void shouldNotCallInvoiceDelete_whenUserHasNoAccounts() {
+	void shouldNotCallInvoiceDelete_whenUserHasNoCards() {
 		when(userRepository.existsById(userId)).thenReturn(true);
-		when(accountRepository.findAllByUserIdOrderByNameAsc(userId)).thenReturn(List.of());
+		when(cardRepository.findAllByUserId(userId)).thenReturn(List.of());
 
 		service.deleteAccount(userId);
 
-		verify(cardInvoiceRepository, never()).deleteByAccountIdIn(anyList());
+		verify(cardInvoiceRepository, never()).deleteByCardIdIn(anyList());
 		verify(userRepository).deleteById(userId);
 	}
 

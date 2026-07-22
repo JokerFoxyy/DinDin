@@ -43,32 +43,55 @@ class AccountCategoryFlowIntegrationTest {
 	@Test
 	void shouldCompleteAccountCrudFlow_whenAuthenticated() {
 		ResponseEntity<String> created = exchange(HttpMethod.POST, "/v1/accounts",
-				Map.of("name", "Nubank", "type", "CREDIT_CARD", "closingDay", 28, "dueDay", 7), String.class);
+				Map.of("name", "Uniclass", "type", "CHECKING"), String.class);
 		assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 		String id = created.getBody().replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
 
 		ResponseEntity<String> list = exchange(HttpMethod.GET, "/v1/accounts", null, String.class);
-		assertThat(list.getBody()).contains("Nubank").contains("\"closingDay\":28");
+		assertThat(list.getBody()).contains("Uniclass").contains("\"type\":\"CHECKING\"");
 
 		ResponseEntity<String> updated = exchange(HttpMethod.PUT, "/v1/accounts/" + id,
-				Map.of("name", "Nubank UV", "type", "CREDIT_CARD", "closingDay", 25, "dueDay", 4), String.class);
+				Map.of("name", "Uniclass Plus", "type", "CHECKING"), String.class);
 		assertThat(updated.getStatusCode()).isEqualTo(HttpStatus.OK);
-		assertThat(updated.getBody()).contains("Nubank UV");
+		assertThat(updated.getBody()).contains("Uniclass Plus");
 
 		ResponseEntity<Void> deleted = exchange(HttpMethod.DELETE, "/v1/accounts/" + id, null, Void.class);
 		assertThat(deleted.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
 
 		ResponseEntity<String> afterDelete = exchange(HttpMethod.GET, "/v1/accounts", null, String.class);
-		assertThat(afterDelete.getBody()).doesNotContain("Nubank");
+		assertThat(afterDelete.getBody()).doesNotContain("Uniclass");
 	}
 
 	@Test
-	void shouldReturn400_whenCreditCardWithoutInvoiceDays() {
-		ResponseEntity<String> response = exchange(HttpMethod.POST, "/v1/accounts",
-				Map.of("name", "Black", "type", "CREDIT_CARD"), String.class);
+	void shouldCompleteCardCrudFlow_linkedToAccount() {
+		ResponseEntity<String> account = exchange(HttpMethod.POST, "/v1/accounts",
+				Map.of("name", "Nubank Conta", "type", "CHECKING"), String.class);
+		String accountId = account.getBody().replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
+
+		ResponseEntity<String> created = exchange(HttpMethod.POST, "/v1/cards",
+				Map.of("name", "Nubank", "accountId", accountId, "closingDay", 28, "dueDay", 7), String.class);
+		assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+		assertThat(created.getBody()).contains("Nubank").contains("\"closingDay\":28")
+				.contains("\"accountName\":\"Nubank Conta\"");
+		String cardId = created.getBody().replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
+
+		ResponseEntity<String> list = exchange(HttpMethod.GET, "/v1/cards", null, String.class);
+		assertThat(list.getBody()).contains("Nubank");
+
+		ResponseEntity<Void> deleted = exchange(HttpMethod.DELETE, "/v1/cards/" + cardId, null, Void.class);
+		assertThat(deleted.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+	}
+
+	@Test
+	void shouldReturn400_whenCardHasNoInvoiceDays() {
+		ResponseEntity<String> account = exchange(HttpMethod.POST, "/v1/accounts",
+				Map.of("name", "Conta", "type", "CHECKING"), String.class);
+		String accountId = account.getBody().replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
+
+		ResponseEntity<String> response = exchange(HttpMethod.POST, "/v1/cards",
+				Map.of("name", "Black", "accountId", accountId), String.class);
 
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-		assertThat(response.getBody()).contains("fechamento");
 	}
 
 	@Test

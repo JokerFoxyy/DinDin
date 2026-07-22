@@ -3,6 +3,8 @@ package com.poupito.api.invoice;
 import com.poupito.api.account.Account;
 import com.poupito.api.account.AccountRepository;
 import com.poupito.api.account.AccountType;
+import com.poupito.api.card.Card;
+import com.poupito.api.card.CardRepository;
 import com.poupito.api.category.CategoryRepository;
 import com.poupito.api.common.error.BusinessException;
 import com.poupito.api.common.error.NotFoundException;
@@ -38,6 +40,7 @@ import static org.mockito.Mockito.when;
 class InvoiceServiceTest {
 
 	private final UUID userId = UUID.randomUUID();
+	private final UUID cardId = UUID.randomUUID();
 	private final UUID accountId = UUID.randomUUID();
 	private final UUID invoiceId = UUID.randomUUID();
 
@@ -46,6 +49,8 @@ class InvoiceServiceTest {
 	@Mock
 	private TransactionRepository transactionRepository;
 	@Mock
+	private CardRepository cardRepository;
+	@Mock
 	private AccountRepository accountRepository;
 	@Mock
 	private CategoryRepository categoryRepository;
@@ -53,28 +58,28 @@ class InvoiceServiceTest {
 	@InjectMocks
 	private InvoiceService service;
 
-	private Account card;
+	private Card card;
 	private CardInvoice invoice;
 
 	@BeforeEach
 	void setUp() {
-		card = new Account(userId, "Nubank", AccountType.CREDIT_CARD, 28, 7);
-		ReflectionTestUtils.setField(card, "id", accountId);
-		invoice = new CardInvoice(accountId, LocalDate.of(2026, 7, 1),
+		card = new Card(userId, accountId, "Nubank", 28, 7);
+		ReflectionTestUtils.setField(card, "id", cardId);
+		invoice = new CardInvoice(cardId, LocalDate.of(2026, 7, 1),
 				LocalDate.of(2026, 7, 28), LocalDate.of(2026, 8, 7));
 		ReflectionTestUtils.setField(invoice, "id", invoiceId);
 		lenient().when(cardInvoiceRepository.findById(invoiceId)).thenReturn(Optional.of(invoice));
-		lenient().when(accountRepository.findByIdAndUserId(accountId, userId)).thenReturn(Optional.of(card));
+		lenient().when(cardRepository.findByIdAndUserId(cardId, userId)).thenReturn(Optional.of(card));
 		lenient().when(categoryRepository.findAllById(anyIterable())).thenReturn(List.of());
 	}
 
 	private Transaction purchase(String amount) {
-		return new Transaction(userId, accountId, null, invoiceId, "Compra",
+		return Transaction.forCard(userId, cardId, null, invoiceId, "Compra",
 				new BigDecimal(amount), LocalDate.of(2026, 7, 15), TransactionType.EXPENSE);
 	}
 
 	private Transaction adjustment(String amount) {
-		return new Transaction(userId, accountId, null, invoiceId, "Ajuste de fatura",
+		return Transaction.forCard(userId, cardId, null, invoiceId, "Ajuste de fatura",
 				new BigDecimal(amount), LocalDate.of(2026, 7, 28), TransactionType.INVOICE_ADJUSTMENT);
 	}
 
@@ -105,7 +110,6 @@ class InvoiceServiceTest {
 		Transaction adjustment = adjustment("50.00");
 		ReflectionTestUtils.setField(invoice, "declaredTotal", new BigDecimal("150.00"));
 		ReflectionTestUtils.setField(invoice, "status", InvoiceStatus.CLOSED);
-		// usuário detalhou parte: 100 + 20 lançados, ajuste antigo de 50
 		when(transactionRepository.findAllByInvoiceIdOrderByDateAsc(invoiceId))
 				.thenReturn(List.of(purchase("100.00"), purchase("20.00"), adjustment));
 
@@ -128,18 +132,27 @@ class InvoiceServiceTest {
 	}
 
 	@Test
-	void shouldPayClosedInvoice() {
+	void shouldPayClosedInvoiceDebitingLinkedAccount() {
 		ReflectionTestUtils.setField(invoice, "status", InvoiceStatus.CLOSED);
+		ReflectionTestUtils.setField(invoice, "declaredTotal", new BigDecimal("150.00"));
+		Account linked = new Account(userId, "Nubank Conta", AccountType.CHECKING);
+		ReflectionTestUtils.setField(linked, "id", accountId);
+		when(accountRepository.findByIdAndUserId(accountId, userId)).thenReturn(Optional.of(linked));
 		when(transactionRepository.findAllByInvoiceIdOrderByDateAsc(invoiceId)).thenReturn(List.of());
 
-		InvoiceDetailResponse detail = service.pay(userId, invoiceId);
+		InvoiceDetailResponse detail = service.pay(userId, invoiceId, null);
 
 		assertThat(detail.invoice().status()).isEqualTo(InvoiceStatus.PAID);
+		ArgumentCaptor<Transaction> saved = ArgumentCaptor.forClass(Transaction.class);
+		verify(transactionRepository).save(saved.capture());
+		assertThat(saved.getValue().getType()).isEqualTo(TransactionType.INVOICE_PAYMENT);
+		assertThat(saved.getValue().getAccountId()).isEqualTo(accountId);
+		assertThat(saved.getValue().getAmount()).isEqualByComparingTo("150.00");
 	}
 
 	@Test
 	void shouldThrowBusiness_whenPayingOpenInvoice() {
-		assertThatThrownBy(() -> service.pay(userId, invoiceId)).isInstanceOf(BusinessException.class);
+		assertThatThrownBy(() -> service.pay(userId, invoiceId, null)).isInstanceOf(BusinessException.class);
 	}
 
 	@Test
@@ -167,15 +180,15 @@ class InvoiceServiceTest {
 
 	@Test
 	void shouldThrowNotFound_whenInvoiceBelongsToAnotherUser() {
-		when(accountRepository.findByIdAndUserId(accountId, userId)).thenReturn(Optional.empty());
+		when(cardRepository.findByIdAndUserId(cardId, userId)).thenReturn(Optional.empty());
 
 		assertThatThrownBy(() -> service.getDetail(userId, invoiceId)).isInstanceOf(NotFoundException.class);
 	}
 
 	@Test
 	void shouldListInvoicesForMonthWithLaunchedTotal() {
-		when(accountRepository.findAllByUserIdOrderByNameAsc(userId)).thenReturn(List.of(card));
-		when(cardInvoiceRepository.findByAccountIdInAndMonthOrderByCreatedAtAsc(any(), any()))
+		when(cardRepository.findAllByUserIdOrderByNameAsc(userId)).thenReturn(List.of(card));
+		when(cardInvoiceRepository.findByCardIdInAndMonthOrderByCreatedAtAsc(any(), any()))
 				.thenReturn(List.of(invoice));
 		when(transactionRepository.findAllByInvoiceIdOrderByDateAsc(invoiceId))
 				.thenReturn(List.of(purchase("100.00"), adjustment("50.00")));
@@ -192,10 +205,9 @@ class InvoiceServiceTest {
 		ReflectionTestUtils.setField(invoice, "status", InvoiceStatus.CLOSED);
 		ReflectionTestUtils.setField(invoice, "declaredTotal", new BigDecimal("150.00"));
 		Transaction adjustment = adjustment("50.00");
-		when(accountRepository.findAllByUserIdOrderByNameAsc(userId)).thenReturn(List.of(card));
-		when(cardInvoiceRepository.findByAccountIdInAndMonthOrderByCreatedAtAsc(any(), any()))
+		when(cardRepository.findAllByUserIdOrderByNameAsc(userId)).thenReturn(List.of(card));
+		when(cardInvoiceRepository.findByCardIdInAndMonthOrderByCreatedAtAsc(any(), any()))
 				.thenReturn(List.of(invoice));
-		// já detalhou parte (100 + 30 lançados); a listagem deve reconciliar o ajuste para 20
 		when(transactionRepository.findAllByInvoiceIdOrderByDateAsc(invoiceId))
 				.thenReturn(List.of(purchase("100.00"), purchase("30.00"), adjustment));
 
@@ -206,9 +218,8 @@ class InvoiceServiceTest {
 	}
 
 	@Test
-	void shouldReturnEmpty_whenUserHasNoCreditCards() {
-		Account checking = new Account(userId, "Uniclass", AccountType.CHECKING, null, null);
-		when(accountRepository.findAllByUserIdOrderByNameAsc(userId)).thenReturn(List.of(checking));
+	void shouldReturnEmpty_whenUserHasNoCards() {
+		when(cardRepository.findAllByUserIdOrderByNameAsc(userId)).thenReturn(List.of());
 
 		assertThat(service.list(userId, java.time.YearMonth.of(2026, 7))).isEmpty();
 	}

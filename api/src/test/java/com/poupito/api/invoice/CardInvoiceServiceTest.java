@@ -1,7 +1,7 @@
 package com.poupito.api.invoice;
 
-import com.poupito.api.account.Account;
-import com.poupito.api.account.AccountType;
+import com.poupito.api.card.Card;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -29,8 +29,8 @@ class CardInvoiceServiceTest {
 	@InjectMocks
 	private CardInvoiceService cardInvoiceService;
 
-	private Account card(int closingDay, int dueDay) {
-		return new Account(UUID.randomUUID(), "Nubank", AccountType.CREDIT_CARD, closingDay, dueDay);
+	private Card card(int closingDay, int dueDay) {
+		return new Card(UUID.randomUUID(), UUID.randomUUID(), "Nubank", closingDay, dueDay);
 	}
 
 	@Test
@@ -62,7 +62,7 @@ class CardInvoiceServiceTest {
 
 	@Test
 	void shouldCreateInvoiceWithDueDateInSameMonth_whenDueDayIsAfterClosingDay() {
-		when(cardInvoiceRepository.findByAccountIdAndMonth(any(), any())).thenReturn(Optional.empty());
+		when(cardInvoiceRepository.findByCardIdAndMonth(any(), any())).thenReturn(Optional.empty());
 		when(cardInvoiceRepository.save(any(CardInvoice.class))).thenAnswer(inv -> inv.getArgument(0));
 
 		CardInvoice invoice = cardInvoiceService.getOrCreateInvoiceFor(card(10, 20), LocalDate.of(2026, 7, 5));
@@ -75,7 +75,7 @@ class CardInvoiceServiceTest {
 
 	@Test
 	void shouldCreateInvoiceWithDueDateInNextMonth_whenDueDayIsBeforeClosingDay() {
-		when(cardInvoiceRepository.findByAccountIdAndMonth(any(), any())).thenReturn(Optional.empty());
+		when(cardInvoiceRepository.findByCardIdAndMonth(any(), any())).thenReturn(Optional.empty());
 		when(cardInvoiceRepository.save(any(CardInvoice.class))).thenAnswer(inv -> inv.getArgument(0));
 
 		CardInvoice invoice = cardInvoiceService.getOrCreateInvoiceFor(card(28, 7), LocalDate.of(2026, 7, 10));
@@ -87,7 +87,7 @@ class CardInvoiceServiceTest {
 
 	@Test
 	void shouldClampClosingDateAndPushDueToNextMonth_whenInvoiceMonthIsFebruary() {
-		when(cardInvoiceRepository.findByAccountIdAndMonth(any(), any())).thenReturn(Optional.empty());
+		when(cardInvoiceRepository.findByCardIdAndMonth(any(), any())).thenReturn(Optional.empty());
 		when(cardInvoiceRepository.save(any(CardInvoice.class))).thenAnswer(inv -> inv.getArgument(0));
 
 		// fechamento 31 clampa para 28/02; vencimento 30 não vem depois do fechamento
@@ -101,10 +101,10 @@ class CardInvoiceServiceTest {
 
 	@Test
 	void shouldReuseExistingInvoice_whenPeriodAlreadyHasOne() {
-		Account card = card(28, 7);
+		Card card = card(28, 7);
 		CardInvoice existing = new CardInvoice(card.getId(), LocalDate.of(2026, 7, 1),
 				LocalDate.of(2026, 7, 28), LocalDate.of(2026, 8, 7));
-		when(cardInvoiceRepository.findByAccountIdAndMonth(card.getId(), LocalDate.of(2026, 7, 1)))
+		when(cardInvoiceRepository.findByCardIdAndMonth(card.getId(), LocalDate.of(2026, 7, 1)))
 				.thenReturn(Optional.of(existing));
 
 		CardInvoice invoice = cardInvoiceService.getOrCreateInvoiceFor(card, LocalDate.of(2026, 7, 10));
@@ -115,7 +115,7 @@ class CardInvoiceServiceTest {
 
 	@Test
 	void shouldReportMonthCaptured_whenNewInvoiceIsSaved() {
-		when(cardInvoiceRepository.findByAccountIdAndMonth(any(), any())).thenReturn(Optional.empty());
+		when(cardInvoiceRepository.findByCardIdAndMonth(any(), any())).thenReturn(Optional.empty());
 		when(cardInvoiceRepository.save(any(CardInvoice.class))).thenAnswer(inv -> inv.getArgument(0));
 
 		cardInvoiceService.getOrCreateInvoiceFor(card(28, 7), LocalDate.of(2026, 7, 30));
