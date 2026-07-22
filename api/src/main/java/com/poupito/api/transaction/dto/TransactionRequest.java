@@ -14,12 +14,14 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+/** Exatamente UM de accountId (debito/dinheiro) ou cardId (credito) deve ser informado. */
 public record TransactionRequest(
 		@NotBlank @Size(max = 200) String description,
 		@NotNull @Positive @Digits(integer = 12, fraction = 2) BigDecimal amount,
 		@NotNull LocalDate date,
 		@NotNull TransactionType type,
-		@NotNull UUID accountId,
+		UUID accountId,
+		UUID cardId,
 		@NotNull UUID categoryId,
 		List<@Size(max = 40) String> tags,
 		@Min(1) @Max(60) Integer installments) {

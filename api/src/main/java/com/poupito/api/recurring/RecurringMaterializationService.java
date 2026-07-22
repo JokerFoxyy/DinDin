@@ -2,10 +2,8 @@ package com.poupito.api.recurring;
 
 import com.poupito.api.account.Account;
 import com.poupito.api.account.AccountRepository;
-import com.poupito.api.account.AccountType;
 import com.poupito.api.category.Category;
 import com.poupito.api.category.CategoryRepository;
-import com.poupito.api.invoice.CardInvoiceService;
 import com.poupito.api.recurring.dto.OccurrenceResponse;
 import com.poupito.api.transaction.Transaction;
 import com.poupito.api.transaction.TransactionRepository;
@@ -29,16 +27,14 @@ public class RecurringMaterializationService {
 	private final TransactionRepository transactionRepository;
 	private final AccountRepository accountRepository;
 	private final CategoryRepository categoryRepository;
-	private final CardInvoiceService cardInvoiceService;
 
 	public RecurringMaterializationService(RecurringTransactionRepository recurringRepository,
 			TransactionRepository transactionRepository, AccountRepository accountRepository,
-			CategoryRepository categoryRepository, CardInvoiceService cardInvoiceService) {
+			CategoryRepository categoryRepository) {
 		this.recurringRepository = recurringRepository;
 		this.transactionRepository = transactionRepository;
 		this.accountRepository = accountRepository;
 		this.categoryRepository = categoryRepository;
-		this.cardInvoiceService = cardInvoiceService;
 	}
 
 	/** Materializa os fixos ativos do usuário no mês e devolve o estado das ocorrências. */
@@ -80,13 +76,11 @@ public class RecurringMaterializationService {
 
 	private Transaction createOccurrence(RecurringTransaction recurring, YearMonth month) {
 		LocalDate date = recurring.occurrenceDate(month);
-		Account account = accountRepository.findById(recurring.getAccountId())
+		accountRepository.findById(recurring.getAccountId())
 				.orElseThrow(() -> new IllegalStateException("Conta do fixo não encontrada"));
-		UUID invoiceId = account.getType() == AccountType.CREDIT_CARD
-				? cardInvoiceService.getOrCreateInvoiceFor(account, date).getId()
-				: null;
+		// fixos são sempre em conta (débito) desde a sessão #25 — fixo em cartão é melhoria futura
 		Transaction transaction = Transaction.materialized(recurring.getUserId(), recurring.getAccountId(),
-				recurring.getCategoryId(), invoiceId, recurring.getDescription(), recurring.getAmount(),
+				recurring.getCategoryId(), recurring.getDescription(), recurring.getAmount(),
 				date, recurring.getType(), recurring.getId());
 		return transactionRepository.save(transaction);
 	}

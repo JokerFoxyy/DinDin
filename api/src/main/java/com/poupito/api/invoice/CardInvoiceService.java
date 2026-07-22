@@ -1,6 +1,6 @@
 package com.poupito.api.invoice;
 
-import com.poupito.api.account.Account;
+import com.poupito.api.card.Card;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,9 +21,9 @@ public class CardInvoiceService {
 	 * Regra: compra no dia do fechamento ou depois entra na fatura do mês seguinte.
 	 */
 	@Transactional
-	public CardInvoice getOrCreateInvoiceFor(Account card, LocalDate purchaseDate) {
+	public CardInvoice getOrCreateInvoiceFor(Card card, LocalDate purchaseDate) {
 		YearMonth invoiceMonth = invoiceMonthFor(card.getClosingDay(), purchaseDate);
-		return cardInvoiceRepository.findByAccountIdAndMonth(card.getId(), invoiceMonth.atDay(1))
+		return cardInvoiceRepository.findByCardIdAndMonth(card.getId(), invoiceMonth.atDay(1))
 				.orElseGet(() -> cardInvoiceRepository.save(newInvoice(card, invoiceMonth)));
 	}
 
@@ -35,7 +35,7 @@ public class CardInvoiceService {
 				: purchaseMonth;
 	}
 
-	private CardInvoice newInvoice(Account card, YearMonth month) {
+	private CardInvoice newInvoice(Card card, YearMonth month) {
 		LocalDate closingDate = clampToMonth(month, card.getClosingDay());
 		// vencimento é sempre depois do fechamento: se o dia de vencimento não vem
 		// depois do dia de fechamento dentro do mês, ele cai no mês seguinte

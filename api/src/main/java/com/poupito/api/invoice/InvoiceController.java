@@ -4,6 +4,7 @@ import com.poupito.api.common.security.AuthenticatedUser;
 import com.poupito.api.invoice.dto.CloseInvoiceRequest;
 import com.poupito.api.invoice.dto.InvoiceDetailResponse;
 import com.poupito.api.invoice.dto.InvoiceSummaryResponse;
+import com.poupito.api.invoice.dto.PayInvoiceRequest;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -47,8 +48,9 @@ public class InvoiceController {
 	}
 
 	@PostMapping("/{id}/pay")
-	public InvoiceDetailResponse pay(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id) {
-		return invoiceService.pay(user.id(), id);
+	public InvoiceDetailResponse pay(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id,
+			@RequestBody(required = false) PayInvoiceRequest request) {
+		return invoiceService.pay(user.id(), id, request != null ? request.accountId() : null);
 	}
 
 	@PostMapping("/{id}/reopen")
