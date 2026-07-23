@@ -190,7 +190,8 @@ Decisões (usuário): entidade **Card** separada sempre vinculada a uma conta; c
 Tasks: (1) migration V12 + CRUD `/v1/cards`; (2) transações xor conta/cartão + fatura por cartão + endpoint pagar fatura; (3) importer roteando cartão→fatura; (4) testes backend; (5) frontend (painel Cartões, "Pagar com", badge de método, pagar fatura, import); (6) testes web + verificação e2e; (7) docs + PR.
 Pré-req: nenhum técnico (roda já).
 
-**#26 — Bugfix: estado de contas dessincronizado na UI (pós-#25)** 🔜 PRÓXIMA (bugs reportados pelo usuário 2026-07-22 — roda já, independe do deploy)
+**#26 — Bugfix: estado de contas dessincronizado na UI (pós-#25)** ✅ CONCLUÍDA (2026-07-23 — SDD: `docs/session-26-fix-estado-contas/SDD.md`; bugs reportados pelo usuário 2026-07-22)
+Solução: stores reativos com signals (`core/state/{account,card,category}.store.ts`) como fonte única — toda mutação dá `refresh()` e propaga pros consumidores. Mensagem específica no 404 (conta/cartão apagado noutra tela) + refresh; nota de UX no painel de Cartões ("débito não é cartão"). 255 testes web (97/85/93/96); verificado e2e no browser (apagar conta some de todos os selects sem reload, nas duas direções e cross-rota).
 
 **Sintomas relatados:**
 1. Ao criar cartão vinculado a uma conta (ex.: cartão "Nubank" → conta "Débito"), a UI retorna **"Erro ao salvar o cartão"**.
