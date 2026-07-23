@@ -1,9 +1,9 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
-import { AccountService } from './account.service';
-import { CardService } from './card.service';
-import { Account, Card } from './settings.models';
+import { AccountStore } from '../../core/state/account.store';
+import { CardStore } from '../../core/state/card.store';
+import { Card } from './settings.models';
 
 @Component({
   selector: 'app-cards-panel',
@@ -11,12 +11,12 @@ import { Account, Card } from './settings.models';
   templateUrl: './cards-panel.html'
 })
 export class CardsPanel implements OnInit {
-  private readonly cardService = inject(CardService);
-  private readonly accountService = inject(AccountService);
+  private readonly cardStore = inject(CardStore);
+  private readonly accountStore = inject(AccountStore);
   private readonly formBuilder = inject(FormBuilder);
 
-  readonly cards = signal<Card[]>([]);
-  readonly accounts = signal<Account[]>([]);
+  readonly cards = this.cardStore.cards;
+  readonly accounts = this.accountStore.accounts;
   readonly editing = signal<Card | null>(null);
   readonly showForm = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -29,8 +29,8 @@ export class CardsPanel implements OnInit {
   });
 
   ngOnInit(): void {
-    this.load();
-    this.accountService.list().subscribe((accounts) => this.accounts.set(accounts));
+    this.cardStore.ensureLoaded();
+    this.accountStore.ensureLoaded();
   }
 
   openCreate(): void {
@@ -71,25 +71,27 @@ export class CardsPanel implements OnInit {
     };
     const editing = this.editing();
     const request$ = editing
-      ? this.cardService.update(editing.id, payload)
-      : this.cardService.create(payload);
+      ? this.cardStore.update(editing.id, payload)
+      : this.cardStore.create(payload);
     request$.subscribe({
-      next: () => {
-        this.cancel();
-        this.load();
-      },
-      error: () => this.errorMessage.set('Erro ao salvar o cartão')
+      next: () => this.cancel(),
+      error: (error) => this.errorMessage.set(this.saveErrorMessage(error))
     });
   }
 
   remove(card: Card): void {
-    this.cardService.delete(card.id).subscribe({
-      next: () => this.load(),
-      error: () => this.errorMessage.set('Erro ao excluir o cartão')
+    this.cardStore.delete(card.id).subscribe({
+      error: () => this.errorMessage.set(
+        'Não foi possível excluir: o cartão pode ter transações ou faturas vinculadas.')
     });
   }
 
-  private load(): void {
-    this.cardService.list().subscribe((cards) => this.cards.set(cards));
+  /** 404 na conta vinculada = a conta foi apagada noutra tela e o dropdown ficou velho. */
+  private saveErrorMessage(error: unknown): string {
+    if (error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 404) {
+      this.accountStore.refresh();
+      return 'A conta selecionada não existe mais — atualize a lista e escolha outra.';
+    }
+    return 'Erro ao salvar o cartão';
   }
 }

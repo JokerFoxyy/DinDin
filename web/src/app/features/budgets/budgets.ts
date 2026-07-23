@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { MonthPicker } from '../../shared/month-picker';
-import { CategoryService } from '../settings/category.service';
+import { CategoryStore } from '../../core/state/category.store';
 import { Category } from '../settings/settings.models';
 import { BudgetService } from './budget.service';
 import { BudgetReport } from './budget.models';
@@ -17,12 +17,12 @@ import { BudgetReport } from './budget.models';
 })
 export class Budgets implements OnInit {
   private readonly budgetService = inject(BudgetService);
-  private readonly categoryService = inject(CategoryService);
+  private readonly categoryStore = inject(CategoryStore);
   private readonly formBuilder = inject(FormBuilder);
 
   readonly month = signal(currentMonth());
   readonly budgets = signal<BudgetReport[]>([]);
-  readonly categories = signal<Category[]>([]);
+  readonly categories = this.categoryStore.categories;
   readonly modalOpen = signal(false);
   readonly editing = signal<BudgetReport | null>(null);
   readonly errorMessage = signal<string | null>(null);
@@ -33,7 +33,7 @@ export class Budgets implements OnInit {
   });
 
   ngOnInit(): void {
-    this.categoryService.list().subscribe((categories) => this.categories.set(categories));
+    this.categoryStore.ensureLoaded();
     this.load();
   }
 

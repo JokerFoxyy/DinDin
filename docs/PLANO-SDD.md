@@ -190,7 +190,8 @@ Decisões (usuário): entidade **Card** separada sempre vinculada a uma conta; c
 Tasks: (1) migration V12 + CRUD `/v1/cards`; (2) transações xor conta/cartão + fatura por cartão + endpoint pagar fatura; (3) importer roteando cartão→fatura; (4) testes backend; (5) frontend (painel Cartões, "Pagar com", badge de método, pagar fatura, import); (6) testes web + verificação e2e; (7) docs + PR.
 Pré-req: nenhum técnico (roda já).
 
-**#26 — Bugfix: estado de contas dessincronizado na UI (pós-#25)** 🔜 PRÓXIMA (bugs reportados pelo usuário 2026-07-22 — roda já, independe do deploy)
+**#26 — Bugfix: estado de contas dessincronizado na UI (pós-#25)** ✅ CONCLUÍDA (2026-07-23 — SDD: `docs/session-26-fix-estado-contas/SDD.md`; bugs reportados pelo usuário 2026-07-22)
+Solução: stores reativos com signals (`core/state/{account,card,category}.store.ts`) como fonte única — toda mutação dá `refresh()` e propaga pros consumidores. Mensagem específica no 404 (conta/cartão apagado noutra tela) + refresh; nota de UX no painel de Cartões ("débito não é cartão"). 255 testes web (97/85/93/96); verificado e2e no browser (apagar conta some de todos os selects sem reload, nas duas direções e cross-rota).
 
 **Sintomas relatados:**
 1. Ao criar cartão vinculado a uma conta (ex.: cartão "Nubank" → conta "Débito"), a UI retorna **"Erro ao salvar o cartão"**.
@@ -206,6 +207,20 @@ Pré-req: nenhum técnico (roda já).
 5. Regressão de testes web (≥90/80/90/90) + verificação e2e: apagar conta e confirmar que some de **todos** os selects sem precisar recarregar a página.
 
 Pré-req: nenhum (roda já; independe do deploy).
+
+**#27 — Arquivar contas & cartões (soft) + excluir com cascata explícito** 📋 PLANEJADA (refinamento pós-uso, decidido com o usuário 2026-07-23)
+Motivação: apagar cartão/conta com transações/faturas vinculadas hoje só bloqueia (409 por FK). Num app financeiro o histórico é o produto — cancelar um cartão não pode significar perder o histórico de gastos dele.
+Decisão (usuário): **arquivar/inativar é a ação principal** (some dos seletores de novo lançamento, mas mantém transações/faturas antigas visíveis no histórico e nos filtros); **excluir de vez em cascata** vira opção secundária, com confirmação forte mostrando a contagem exata (cartão + N transações + M faturas). Vale **igual para contas**.
+Tasks a refinar: (1) flag `active` em `Card` e `Account` (migration) + filtrar seletores de novo lançamento para só ativos (listagens/histórico/filtros mostram todos); (2) ação de arquivar/desarquivar (endpoint + UI); (3) excluir-com-cascata explícito (serviço transacional no backend + confirmação no front com a contagem); (4) testes (≥90% API, ≥90/80/90/90 web); (5) verificação e2e.
+Pré-req: #25 (modelo conta/cartão).
+
+**#28 — Saldo por conta (competência + regime de caixa)** 📋 PLANEJADA (refinamento pós-uso, decidido com o usuário 2026-07-23)
+Motivação: hoje só existe um saldo total agregado, em regime de **competência** (a compra no crédito já vira gasto na data da compra; `INVOICE_PAYMENT` não conta de novo). Falta ver o saldo **por conta** e, principalmente, o **dinheiro real disponível** considerando quando as faturas são efetivamente pagas.
+Decisão (usuário): **manter o saldo por competência como está** (padrão) e **adicionar** uma visão de **regime de caixa por conta** como recurso extra — o "dinheiro real" da conta agora e depois de pagar a fatura. No caixa: entradas e gastos em conta (débito/dinheiro) entram na data; a compra no crédito **não** baixa o caixa da conta até a fatura ser paga (aí o `INVOICE_PAYMENT` debita). Competência = "quanto gastei"; caixa = "quanto tenho de verdade na conta".
+Tasks a refinar: (1) cálculo de saldo de caixa por conta (entradas + gastos débito/dinheiro + `INVOICE_PAYMENT`, na data de cada lançamento); (2) endpoint de saldo por conta (as duas visões); (3) UI — saldo por conta (Configurações e/ou Dashboard) + a visão de caixa "agora vs. depois de pagar a fatura em aberto"; (4) testes; (5) verificação e2e.
+Pré-req: #25; roda melhor **depois da #27** (pra o saldo não somar contas/cartões arquivados de forma indevida — a confirmar no SDD).
+
+> Ordem: as sessões #27/#28 são refinamentos de produto que surgiram do uso real — **não alteram a ordem já combinada** (deploy #21 → #24 hardening → #22 Open Finance). Encaixar quando o usuário quiser; boa candidata a vir logo após o deploy, já que melhoram o dia a dia sem depender de infra nova.
 
 ### Fase 5 — Futuro (sem sessão planejada ainda)
 

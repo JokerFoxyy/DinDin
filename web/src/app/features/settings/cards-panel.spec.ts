@@ -91,4 +91,16 @@ describe('CardsPanel', () => {
 
     expect(component.errorMessage()).toContain('Erro ao salvar');
   });
+
+  it('should refresh accounts and warn when the linked account 404s (conta apagada noutra tela)', () => {
+    cardService.create.and.returnValue(throwError(() => ({ status: 404 })));
+    accountService.list.calls.reset();
+
+    component.openCreate();
+    component.form.setValue({ name: 'Black', accountId: 'ghost', closingDay: 1, dueDay: 10 });
+    component.submit();
+
+    expect(component.errorMessage()).toContain('não existe mais');
+    expect(accountService.list).toHaveBeenCalled();
+  });
 });

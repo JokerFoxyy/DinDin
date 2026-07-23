@@ -2,8 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 
 import { MonthPicker } from '../../shared/month-picker';
-import { AccountService } from '../settings/account.service';
-import { Account } from '../settings/settings.models';
+import { AccountStore } from '../../core/state/account.store';
 import { InvoiceService } from './invoice.service';
 import { INVOICE_STATUS_LABELS, InvoiceDetail, InvoiceStatus, InvoiceSummary } from './invoice.models';
 
@@ -15,11 +14,11 @@ import { INVOICE_STATUS_LABELS, InvoiceDetail, InvoiceStatus, InvoiceSummary } f
 })
 export class Invoices implements OnInit {
   private readonly invoiceService = inject(InvoiceService);
-  private readonly accountService = inject(AccountService);
+  private readonly accountStore = inject(AccountStore);
 
   readonly month = signal(currentMonth());
   readonly invoices = signal<InvoiceSummary[]>([]);
-  readonly accounts = signal<Account[]>([]);
+  readonly accounts = this.accountStore.accounts;
   readonly errorMessage = signal<string | null>(null);
 
   readonly closingId = signal<string | null>(null);
@@ -31,7 +30,7 @@ export class Invoices implements OnInit {
   readonly statusLabels = INVOICE_STATUS_LABELS;
 
   ngOnInit(): void {
-    this.accountService.list().subscribe((accounts) => this.accounts.set(accounts));
+    this.accountStore.ensureLoaded();
     this.load();
   }
 

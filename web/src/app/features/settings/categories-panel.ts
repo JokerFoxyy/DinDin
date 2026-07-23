@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
-import { CategoryService } from './category.service';
+import { CategoryStore } from '../../core/state/category.store';
 import { CATEGORY_KIND_LABELS, Category, CategoryKind } from './settings.models';
 
 @Component({
@@ -10,10 +10,10 @@ import { CATEGORY_KIND_LABELS, Category, CategoryKind } from './settings.models'
   templateUrl: './categories-panel.html'
 })
 export class CategoriesPanel implements OnInit {
-  private readonly categoryService = inject(CategoryService);
+  private readonly categoryStore = inject(CategoryStore);
   private readonly formBuilder = inject(FormBuilder);
 
-  readonly categories = signal<Category[]>([]);
+  readonly categories = this.categoryStore.categories;
   readonly editing = signal<Category | null>(null);
   readonly showForm = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -29,7 +29,7 @@ export class CategoriesPanel implements OnInit {
   });
 
   ngOnInit(): void {
-    this.load();
+    this.categoryStore.ensureLoaded();
   }
 
   openCreate(): void {
@@ -65,26 +65,19 @@ export class CategoriesPanel implements OnInit {
     const payload = { name: raw.name, icon: raw.icon || null, color: raw.color || null, kind: raw.kind };
     const editing = this.editing();
     const request$ = editing
-      ? this.categoryService.update(editing.id, payload)
-      : this.categoryService.create(payload);
+      ? this.categoryStore.update(editing.id, payload)
+      : this.categoryStore.create(payload);
     request$.subscribe({
-      next: () => {
-        this.cancel();
-        this.load();
-      },
+      next: () => this.cancel(),
       error: (error) =>
         this.errorMessage.set(error?.status === 409 ? 'Categoria já existe' : 'Erro ao salvar a categoria')
     });
   }
 
   remove(category: Category): void {
-    this.categoryService.delete(category.id).subscribe({
-      next: () => this.load(),
-      error: () => this.errorMessage.set('Erro ao excluir a categoria')
+    this.categoryStore.delete(category.id).subscribe({
+      error: () => this.errorMessage.set(
+        'Não foi possível excluir: a categoria pode ter transações ou orçamentos vinculados.')
     });
-  }
-
-  private load(): void {
-    this.categoryService.list().subscribe((categories) => this.categories.set(categories));
   }
 }
