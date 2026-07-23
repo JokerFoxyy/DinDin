@@ -7,6 +7,7 @@ import Chart from 'chart.js/auto';
 import { MonthPicker } from '../../shared/month-picker';
 import { DashboardService } from './dashboard.service';
 import { AnnualPoint, DashboardSummary } from './dashboard.models';
+import { chartTheme } from '../../core/theme/chart-theme';
 
 @Component({
   selector: 'app-dashboard',
@@ -64,6 +65,7 @@ export class Dashboard implements OnInit, OnDestroy {
     if (!canvas || summary.categorySpend.length === 0) {
       return;
     }
+    const t = chartTheme();
     this.donutChart = new Chart(canvas, {
       type: 'doughnut',
       data: {
@@ -71,7 +73,7 @@ export class Dashboard implements OnInit, OnDestroy {
         datasets: [
           {
             data: summary.categorySpend.map((c) => c.total),
-            backgroundColor: summary.categorySpend.map((c) => c.categoryColor ?? '#4f8ef7'),
+            backgroundColor: summary.categorySpend.map((c) => c.categoryColor ?? t.accent),
             borderWidth: 0
           }
         ]
@@ -80,7 +82,7 @@ export class Dashboard implements OnInit, OnDestroy {
         cutout: '65%',
         animation: false,
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'right', labels: { color: '#8b949e' } } }
+        plugins: { legend: { position: 'right', labels: { color: t.muted } } }
       }
     });
   }
@@ -92,23 +94,24 @@ export class Dashboard implements OnInit, OnDestroy {
     if (!canvas || annual.length === 0) {
       return;
     }
+    const t = chartTheme();
     this.annualChart = new Chart(canvas, {
       type: 'bar',
       data: {
         labels: annual.map((p) => monthLabel(p.month)),
         datasets: [
-          { label: 'Entradas', data: annual.map((p) => p.income), backgroundColor: '#3fb950', borderRadius: 4 },
-          { label: 'Gastos', data: annual.map((p) => p.expense), backgroundColor: '#f85149', borderRadius: 4 }
+          { label: 'Entradas', data: annual.map((p) => p.income), backgroundColor: t.green, borderRadius: 4 },
+          { label: 'Gastos', data: annual.map((p) => p.expense), backgroundColor: t.red, borderRadius: 4 }
         ]
       },
       options: {
         animation: false,
         maintainAspectRatio: false,
         scales: {
-          x: { ticks: { color: '#8b949e' }, grid: { color: '#2a3240' } },
-          y: { ticks: { color: '#8b949e' }, grid: { color: '#2a3240' } }
+          x: { ticks: { color: t.muted }, grid: { color: t.grid } },
+          y: { ticks: { color: t.muted }, grid: { color: t.grid } }
         },
-        plugins: { legend: { labels: { color: '#8b949e' } } }
+        plugins: { legend: { labels: { color: t.muted } } }
       }
     });
   }

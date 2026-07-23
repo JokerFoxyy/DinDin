@@ -4,7 +4,7 @@
     <div class="sidebar-backdrop" (click)="closeSidebar()"></div>
   }
   <aside [class.open]="sidebarOpen()">
-    <div class="logo">Guara<span>nin</span></div>
+    <div class="logo">Poup<span>ito</span></div>
     <nav>
       @for (item of navItems; track item.path) {
         <a class="nav-item" [routerLink]="item.path" routerLinkActive="active" (click)="closeSidebar()">
@@ -19,6 +19,9 @@
       @if (currentUser(); as user) {
         <div class="user-email" [title]="user.email">{{ user.email }}</div>
       }
+      <button class="theme-toggle" type="button" (click)="toggleTheme()">
+        {{ theme() === 'dark' ? '☀️ Tema claro' : '🌙 Tema escuro' }}
+      </button>
       <button class="logout-btn" (click)="logout()">Sair</button>
     </div>
   </aside>

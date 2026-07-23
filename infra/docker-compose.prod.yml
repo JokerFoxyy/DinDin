@@ -1,40 +1,40 @@
-name: guaranin-prod
+name: poupito-prod
 
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: guaranin-postgres-prod
+    container_name: poupito-postgres-prod
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-guaranin}
-      POSTGRES_USER: ${POSTGRES_USER:-guaranin}
+      POSTGRES_DB: ${POSTGRES_DB:-poupito}
+      POSTGRES_USER: ${POSTGRES_USER:-poupito}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-guaranin} -d ${POSTGRES_DB:-guaranin}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-poupito} -d ${POSTGRES_DB:-poupito}"]
       interval: 5s
       timeout: 3s
       retries: 10
 
   api:
-    image: ${API_IMAGE:-ghcr.io/jokerfoxyy/guaranin-api:latest}
-    container_name: guaranin-api-prod
+    image: ${API_IMAGE:-ghcr.io/jokerfoxyy/poupito-api:latest}
+    container_name: poupito-api-prod
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-guaranin}
-      DB_USER: ${POSTGRES_USER:-guaranin}
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-poupito}
+      DB_USER: ${POSTGRES_USER:-poupito}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       COOKIE_SECURE: "true"
 
   web:
-    image: ${WEB_IMAGE:-ghcr.io/jokerfoxyy/guaranin-web:latest}
-    container_name: guaranin-web-prod
+    image: ${WEB_IMAGE:-ghcr.io/jokerfoxyy/poupito-web:latest}
+    container_name: poupito-web-prod
     restart: unless-stopped
     depends_on:
       - api

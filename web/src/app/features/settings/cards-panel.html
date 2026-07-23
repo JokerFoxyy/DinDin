@@ -1,0 +1,83 @@
+<div class="panel">
+  <div class="panel-header">
+    <h2>Cartões de crédito</h2>
+    @if (!showForm() && accounts().length > 0) {
+      <button class="btn" (click)="openCreate()">+ Novo cartão</button>
+    }
+  </div>
+
+  <p class="panel-hint">
+    Só <strong>cartão de crédito</strong> entra aqui (gera fatura). Débito e dinheiro não são cartões —
+    basta criar a <strong>conta</strong> e escolhê-la em "Pagar com" ao lançar; o método vira débito/dinheiro sozinho.
+  </p>
+
+  @if (errorMessage(); as message) {
+    <div class="form-error" role="alert">{{ message }}</div>
+  }
+
+  @if (accounts().length === 0) {
+    <p class="empty">Crie uma conta corrente antes — todo cartão de crédito é atrelado a uma conta (é dela que a fatura é paga).</p>
+  }
+
+  @if (showForm()) {
+    <form [formGroup]="form" (ngSubmit)="submit()" class="inline-form">
+      <div class="field">
+        <label for="card-name">Nome</label>
+        <input id="card-name" type="text" formControlName="name" placeholder="Ex.: Nubank Ultravioleta" />
+        @if (form.controls.name.touched && form.controls.name.invalid) {
+          <div class="error">Informe o nome do cartão</div>
+        }
+      </div>
+      <div class="field">
+        <label for="card-account">Conta vinculada</label>
+        <select id="card-account" formControlName="accountId">
+          <option value="" disabled>Selecione a conta</option>
+          @for (account of accounts(); track account.id) {
+            <option [value]="account.id">{{ account.name }}</option>
+          }
+        </select>
+        @if (form.controls.accountId.touched && form.controls.accountId.invalid) {
+          <div class="error">Escolha a conta de onde a fatura é paga</div>
+        }
+      </div>
+      <div class="days-row">
+        <div class="field">
+          <label for="closing-day">Dia de fechamento</label>
+          <input id="closing-day" type="number" min="1" max="31" formControlName="closingDay" />
+        </div>
+        <div class="field">
+          <label for="due-day">Dia de vencimento</label>
+          <input id="due-day" type="number" min="1" max="31" formControlName="dueDay" />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" type="submit">{{ editing() ? 'Salvar' : 'Criar' }}</button>
+        <button class="btn-ghost" type="button" (click)="cancel()">Cancelar</button>
+      </div>
+    </form>
+  }
+
+  @if (cards().length === 0 && !showForm() && accounts().length > 0) {
+    <p class="empty">Nenhum cartão ainda. Cadastre um para lançar compras no crédito e gerar faturas.</p>
+  } @else if (cards().length > 0) {
+    <table>
+      <tr>
+        <th>Nome</th>
+        <th>Conta</th>
+        <th>Fatura</th>
+        <th></th>
+      </tr>
+      @for (card of cards(); track card.id) {
+        <tr>
+          <td>{{ card.name }}</td>
+          <td>{{ card.accountName ?? '—' }}</td>
+          <td>fecha dia {{ card.closingDay }} · vence dia {{ card.dueDay }}</td>
+          <td class="row-actions">
+            <button type="button" class="link" (click)="openEdit(card)">Editar</button>
+            <button type="button" class="link danger" (click)="remove(card)">Excluir</button>
+          </td>
+        </tr>
+      }
+    </table>
+  }
+</div>

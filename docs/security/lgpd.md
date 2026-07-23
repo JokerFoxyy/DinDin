@@ -1,4 +1,4 @@
-# Guaranin — Conformidade LGPD & Confidencialidade
+# Poupito — Conformidade LGPD & Confidencialidade
 
 > Lei 13.709/2018 (LGPD). Documento vivo — atualizar quando novos dados pessoais forem coletados.
 > Criado na Sessão S (2026-07-10). **Nota:** guia técnico de engenharia, não parecer jurídico.
@@ -32,7 +32,7 @@ Não coletamos: CPF, telefone, endereço, dado de cartão real (só metadados: n
 ## 4. Princípios aplicados (Art. 6º)
 
 - **Minimização:** coletamos só e-mail + dados que o próprio usuário lança. Sem rastreadores, sem analytics de terceiros, sem compartilhamento.
-- **Segurança (Art. 46):** senha em BCrypt; sessão em cookie httpOnly; TLS em trânsito (#21); acesso escopado por usuário; segredos fora do código. Modelo de ameaças STRIDE mantido fora do repo público, em `D:\Docs\Guaranin\threat-model-stride.md`.
+- **Segurança (Art. 46):** senha em BCrypt; sessão em cookie httpOnly; TLS em trânsito (#21); acesso escopado por usuário; segredos fora do código. Modelo de ameaças STRIDE mantido fora do repo público, em `D:\Docs\Poupito\threat-model-stride.md`.
 - **Necessidade/finalidade:** cada dado tem finalidade declarada acima; nada é usado para outro fim.
 - **Retenção:** dados existem enquanto a conta existir; exclusão da conta remove tudo. Refresh tokens expiram em 30 dias e são limpos.
 

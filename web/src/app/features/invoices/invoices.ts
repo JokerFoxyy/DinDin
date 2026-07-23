@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 
 import { MonthPicker } from '../../shared/month-picker';
+import { AccountStore } from '../../core/state/account.store';
 import { InvoiceService } from './invoice.service';
 import { INVOICE_STATUS_LABELS, InvoiceDetail, InvoiceStatus, InvoiceSummary } from './invoice.models';
 
@@ -13,18 +14,23 @@ import { INVOICE_STATUS_LABELS, InvoiceDetail, InvoiceStatus, InvoiceSummary } f
 })
 export class Invoices implements OnInit {
   private readonly invoiceService = inject(InvoiceService);
+  private readonly accountStore = inject(AccountStore);
 
   readonly month = signal(currentMonth());
   readonly invoices = signal<InvoiceSummary[]>([]);
+  readonly accounts = this.accountStore.accounts;
   readonly errorMessage = signal<string | null>(null);
 
   readonly closingId = signal<string | null>(null);
   readonly declaredInput = signal('');
+  readonly payingId = signal<string | null>(null);
+  readonly payAccountId = signal('');
   readonly details = signal<Record<string, InvoiceDetail>>({});
 
   readonly statusLabels = INVOICE_STATUS_LABELS;
 
   ngOnInit(): void {
+    this.accountStore.ensureLoaded();
     this.load();
   }
 
@@ -67,9 +73,31 @@ export class Invoices implements OnInit {
     });
   }
 
-  pay(invoice: InvoiceSummary): void {
-    this.invoiceService.pay(invoice.id).subscribe({
-      next: () => this.reloadKeepingDetail(invoice.id),
+  startPay(invoice: InvoiceSummary): void {
+    this.payingId.set(invoice.id);
+    this.payAccountId.set(this.accounts()[0]?.id ?? '');
+    this.errorMessage.set(null);
+  }
+
+  cancelPay(): void {
+    this.payingId.set(null);
+  }
+
+  onPayAccountChange(accountId: string): void {
+    this.payAccountId.set(accountId);
+  }
+
+  confirmPay(invoice: InvoiceSummary): void {
+    const accountId = this.payAccountId();
+    if (!accountId) {
+      this.errorMessage.set('Escolha a conta que vai pagar a fatura');
+      return;
+    }
+    this.invoiceService.pay(invoice.id, accountId).subscribe({
+      next: () => {
+        this.payingId.set(null);
+        this.reloadKeepingDetail(invoice.id);
+      },
       error: () => this.errorMessage.set('Erro ao pagar a fatura')
     });
   }

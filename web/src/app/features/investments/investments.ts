@@ -9,6 +9,7 @@ import { catchError } from 'rxjs/operators';
 import Chart from 'chart.js/auto';
 
 import { InvestmentService } from './investment.service';
+import { chartTheme } from '../../core/theme/chart-theme';
 import {
   AssetClass, AssetClassPerformance, EntryType, Investment, InvestmentEntry, InvestmentReport
 } from './investment.models';
@@ -240,17 +241,18 @@ export class Investments implements OnInit, OnDestroy {
     if (!canvas || aligned.labels.length === 0) {
       return;
     }
+    const t = chartTheme();
     this.chart = new Chart(canvas, {
       type: 'line',
       data: {
         labels: aligned.labels,
         datasets: [
           {
-            label: 'Patrimônio (R$)', data: aligned.portfolio, borderColor: '#4f8ef7',
+            label: 'Patrimônio (R$)', data: aligned.portfolio, borderColor: t.accent,
             backgroundColor: 'transparent', yAxisID: 'y', tension: 0.2
           },
           {
-            label: 'CDI acumulado (%)', data: aligned.cdi, borderColor: '#3fb950',
+            label: 'CDI acumulado (%)', data: aligned.cdi, borderColor: t.muted,
             backgroundColor: 'transparent', yAxisID: 'y1', tension: 0.2
           }
         ]
@@ -259,11 +261,11 @@ export class Investments implements OnInit, OnDestroy {
         animation: false,
         maintainAspectRatio: false,
         scales: {
-          y: { type: 'linear', position: 'left', ticks: { color: '#8b949e' }, grid: { color: '#2a3240' } },
-          y1: { type: 'linear', position: 'right', ticks: { color: '#8b949e' }, grid: { display: false } },
-          x: { ticks: { color: '#8b949e' }, grid: { color: '#2a3240' } }
+          y: { type: 'linear', position: 'left', ticks: { color: t.muted }, grid: { color: t.grid } },
+          y1: { type: 'linear', position: 'right', ticks: { color: t.muted }, grid: { display: false } },
+          x: { ticks: { color: t.muted }, grid: { color: t.grid } }
         },
-        plugins: { legend: { labels: { color: '#8b949e' } } }
+        plugins: { legend: { labels: { color: t.muted } } }
       }
     });
   }

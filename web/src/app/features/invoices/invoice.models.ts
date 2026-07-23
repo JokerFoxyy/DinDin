@@ -2,8 +2,8 @@ export type InvoiceStatus = 'OPEN' | 'CLOSED' | 'PAID';
 
 export interface InvoiceSummary {
   id: string;
-  accountId: string;
-  accountName: string | null;
+  cardId: string;
+  cardName: string | null;
   month: string;
   closingDate: string;
   dueDate: string;

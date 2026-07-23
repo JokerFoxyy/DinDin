@@ -1,19 +1,19 @@
-name: guaranin
+name: poupito
 
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: guaranin-postgres
+    container_name: poupito-postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-guaranin}
-      POSTGRES_USER: ${POSTGRES_USER:-guaranin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-guaranin-dev}
+      POSTGRES_DB: ${POSTGRES_DB:-poupito}
+      POSTGRES_USER: ${POSTGRES_USER:-poupito}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-poupito-dev}
     ports:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-guaranin} -d ${POSTGRES_DB:-guaranin}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-poupito} -d ${POSTGRES_DB:-poupito}"]
       interval: 5s
       timeout: 3s
       retries: 10

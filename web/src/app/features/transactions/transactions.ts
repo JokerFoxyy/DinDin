@@ -4,18 +4,20 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { MonthPicker } from '../../shared/month-picker';
-import { AccountService } from '../settings/account.service';
-import { CategoryService } from '../settings/category.service';
-import { Account, Category } from '../settings/settings.models';
+import { AccountStore } from '../../core/state/account.store';
+import { CardStore } from '../../core/state/card.store';
+import { CategoryStore } from '../../core/state/category.store';
+import { Card, Category, PAYMENT_METHOD_LABELS } from '../settings/settings.models';
 import { TransactionService } from './transaction.service';
 import {
   TRANSACTION_TYPE_LABELS,
   Transaction,
   TransactionFilters,
+  TransactionPayload,
   TransactionType
 } from './transaction.models';
 
-const LAST_ACCOUNT_KEY = 'guaranin.lastAccount';
+const LAST_TARGET_KEY = 'poupito.lastPaymentTarget';
 
 @Component({
   selector: 'app-transactions',
@@ -25,8 +27,9 @@ const LAST_ACCOUNT_KEY = 'guaranin.lastAccount';
 })
 export class Transactions implements OnInit {
   private readonly transactionService = inject(TransactionService);
-  private readonly accountService = inject(AccountService);
-  private readonly categoryService = inject(CategoryService);
+  private readonly accountStore = inject(AccountStore);
+  private readonly cardStore = inject(CardStore);
+  private readonly categoryStore = inject(CategoryStore);
   private readonly formBuilder = inject(FormBuilder);
 
   readonly month = signal(currentMonth());
@@ -34,16 +37,18 @@ export class Transactions implements OnInit {
   readonly totalElements = signal(0);
   readonly totalPages = signal(0);
   readonly page = signal(0);
-  readonly accounts = signal<Account[]>([]);
-  readonly categories = signal<Category[]>([]);
+  readonly accounts = this.accountStore.accounts;
+  readonly cards = this.cardStore.cards;
+  readonly categories = this.categoryStore.categories;
   readonly modalOpen = signal(false);
   readonly editing = signal<Transaction | null>(null);
   readonly errorMessage = signal<string | null>(null);
 
   readonly typeLabels = TRANSACTION_TYPE_LABELS;
+  readonly methodLabels = PAYMENT_METHOD_LABELS;
 
   readonly filterForm = this.formBuilder.nonNullable.group({
-    accountId: '',
+    target: '',
     categoryId: '',
     type: '',
     q: '',
@@ -55,7 +60,7 @@ export class Transactions implements OnInit {
     amount: [null as number | null, [Validators.required, Validators.min(0.01)]],
     date: ['', Validators.required],
     type: ['EXPENSE' as TransactionType, Validators.required],
-    accountId: ['', Validators.required],
+    target: ['', Validators.required],
     categoryId: ['', Validators.required],
     tags: [''],
     installments: [1, [Validators.required, Validators.min(1), Validators.max(60)]]
@@ -64,8 +69,9 @@ export class Transactions implements OnInit {
   private searchDebounce?: ReturnType<typeof setTimeout>;
 
   ngOnInit(): void {
-    this.accountService.list().subscribe((accounts) => this.accounts.set(accounts));
-    this.categoryService.list().subscribe((categories) => this.categories.set(categories));
+    this.accountStore.ensureLoaded();
+    this.cardStore.ensureLoaded();
+    this.categoryStore.ensureLoaded();
     this.load();
   }
 
@@ -91,6 +97,16 @@ export class Transactions implements OnInit {
     this.load();
   }
 
+  /** Cartão só existe no crédito, que é sempre gasto: em entradas, esconde os cartões do seletor. */
+  cardsForType(): Card[] {
+    return this.form.controls.type.value === 'INCOME' ? [] : this.cards();
+  }
+
+  /** Cartão selecionado no seletor "Pagar com" → habilita parcelamento e some com entradas. */
+  isCardSelected(): boolean {
+    return this.form.controls.target.value.startsWith('card:');
+  }
+
   /** Categorias compatíveis com o tipo selecionado no formulário. */
   categoriesForType(): Category[] {
     const kind = this.form.controls.type.value === 'INCOME' ? 'INCOME' : 'EXPENSE';
@@ -102,21 +118,25 @@ export class Transactions implements OnInit {
     if (!options.some((category) => category.id === this.form.controls.categoryId.value)) {
       this.form.controls.categoryId.setValue(options[0]?.id ?? '');
     }
+    // entrada não pode cair em cartão: se havia um cartão escolhido, volta pra primeira conta
+    if (this.form.controls.type.value === 'INCOME' && this.isCardSelected()) {
+      this.form.controls.target.setValue(this.accounts()[0] ? `account:${this.accounts()[0].id}` : '');
+    }
   }
 
   openCreate(): void {
     this.editing.set(null);
     this.errorMessage.set(null);
-    const lastAccount = localStorage.getItem(LAST_ACCOUNT_KEY);
-    const accountId = this.accounts().some((account) => account.id === lastAccount)
-      ? (lastAccount as string)
-      : (this.accounts()[0]?.id ?? '');
+    const lastTarget = localStorage.getItem(LAST_TARGET_KEY);
+    const target = this.targetOptions().some((option) => option.value === lastTarget)
+      ? (lastTarget as string)
+      : (this.targetOptions()[0]?.value ?? '');
     this.form.reset({
       description: '',
       amount: null,
       date: todayIso(),
       type: 'EXPENSE',
-      accountId,
+      target,
       categoryId: '',
       tags: '',
       installments: 1
@@ -126,7 +146,7 @@ export class Transactions implements OnInit {
   }
 
   openEdit(transaction: Transaction): void {
-    if (transaction.type === 'INVOICE_ADJUSTMENT') {
+    if (transaction.type === 'INVOICE_ADJUSTMENT' || transaction.type === 'INVOICE_PAYMENT') {
       return;
     }
     this.editing.set(transaction);
@@ -136,7 +156,7 @@ export class Transactions implements OnInit {
       amount: transaction.amount,
       date: transaction.date,
       type: transaction.type,
-      accountId: transaction.accountId,
+      target: transaction.cardId ? `card:${transaction.cardId}` : `account:${transaction.accountId}`,
       categoryId: transaction.categoryId ?? '',
       tags: transaction.tags.join(', '),
       installments: 1
@@ -156,27 +176,37 @@ export class Transactions implements OnInit {
     }
     const raw = this.form.getRawValue();
     const editing = this.editing();
-    const payload = {
+    const onCard = raw.target.startsWith('card:');
+    const targetId = raw.target.slice(raw.target.indexOf(':') + 1);
+    const payload: TransactionPayload = {
       description: raw.description,
       amount: raw.amount as number,
       date: raw.date,
       type: raw.type,
-      accountId: raw.accountId,
       categoryId: raw.categoryId,
       tags: raw.tags.split(',').map((tag) => tag.trim()).filter((tag) => tag.length > 0),
-      ...(!editing && raw.installments > 1 ? { installments: raw.installments } : {})
+      ...(onCard ? { cardId: targetId } : { accountId: targetId }),
+      ...(!editing && onCard && raw.installments > 1 ? { installments: raw.installments } : {})
     };
     const request$ = editing
       ? this.transactionService.update(editing.id, payload)
       : this.transactionService.create(payload);
     request$.subscribe({
       next: () => {
-        localStorage.setItem(LAST_ACCOUNT_KEY, payload.accountId);
+        localStorage.setItem(LAST_TARGET_KEY, raw.target);
         this.closeModal();
         this.load();
       },
-      error: (error: HttpErrorResponse) =>
-        this.errorMessage.set(error.error?.message ?? 'Erro ao salvar o lançamento')
+      error: (error: HttpErrorResponse) => {
+        if (error.status === 404) {
+          // conta/cartão escolhido foi apagado noutra tela — ressincroniza os selects
+          this.accountStore.refresh();
+          this.cardStore.refresh();
+          this.errorMessage.set('A conta ou cartão selecionado não existe mais — atualize e tente de novo.');
+        } else {
+          this.errorMessage.set(error.error?.message ?? 'Erro ao salvar o lançamento');
+        }
+      }
     });
   }
 
@@ -204,10 +234,21 @@ export class Transactions implements OnInit {
     });
   }
 
+  /** Opções do seletor "Pagar com": contas (débito/dinheiro) + cartões (crédito). */
+  private targetOptions(): { value: string }[] {
+    return [
+      ...this.accounts().map((account) => ({ value: `account:${account.id}` })),
+      ...this.cards().map((card) => ({ value: `card:${card.id}` }))
+    ];
+  }
+
   private currentFilters(): TransactionFilters {
     const raw = this.filterForm.getRawValue();
+    const onCard = raw.target.startsWith('card:');
+    const targetId = raw.target ? raw.target.slice(raw.target.indexOf(':') + 1) : '';
     return {
-      accountId: raw.accountId || undefined,
+      accountId: raw.target && !onCard ? targetId : undefined,
+      cardId: raw.target && onCard ? targetId : undefined,
       categoryId: raw.categoryId || undefined,
       type: (raw.type || undefined) as TransactionFilters['type'],
       q: raw.q || undefined,

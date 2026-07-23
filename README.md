@@ -1,4 +1,4 @@
-# Guaranin
+# Poupito
 
 App de gestão financeira pessoal — transações, contas/cartões com fatura, fixos recorrentes, orçamentos, dashboard, investimentos e metas.
 

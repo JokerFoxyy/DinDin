@@ -10,12 +10,12 @@ describe('AccountsPanel', () => {
   let component: AccountsPanel;
   let accountService: jasmine.SpyObj<AccountService>;
 
-  const nubank: Account = { id: '1', name: 'Nubank', type: 'CREDIT_CARD', closingDay: 28, dueDay: 7 };
-  const uniclass: Account = { id: '2', name: 'Uniclass', type: 'CHECKING', closingDay: null, dueDay: null };
+  const nubank: Account = { id: '1', name: 'Nubank', type: 'CHECKING' };
+  const carteira: Account = { id: '2', name: 'Carteira', type: 'CASH' };
 
   beforeEach(async () => {
     accountService = jasmine.createSpyObj<AccountService>('AccountService', ['list', 'create', 'update', 'delete']);
-    accountService.list.and.returnValue(of([nubank, uniclass]));
+    accountService.list.and.returnValue(of([nubank, carteira]));
 
     await TestBed.configureTestingModule({
       imports: [AccountsPanel],
@@ -30,16 +30,15 @@ describe('AccountsPanel', () => {
   it('should list accounts on init with pt-BR type labels', () => {
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Nubank');
-    expect(text).toContain('Cartão de crédito');
-    expect(text).toContain('fecha dia 28');
     expect(text).toContain('Conta corrente');
+    expect(text).toContain('Dinheiro');
   });
 
   it('should create an account when form is valid', () => {
-    accountService.create.and.returnValue(of(uniclass));
+    accountService.create.and.returnValue(of(carteira));
 
     component.openCreate();
-    component.form.setValue({ name: 'Carteira', type: 'CASH', closingDay: null, dueDay: null });
+    component.form.setValue({ name: 'Carteira', type: 'CASH' });
     component.submit();
 
     expect(accountService.create).toHaveBeenCalledWith(
@@ -51,21 +50,11 @@ describe('AccountsPanel', () => {
 
   it('should not call the service when name is empty', () => {
     component.openCreate();
-    component.form.setValue({ name: '', type: 'CHECKING', closingDay: null, dueDay: null });
+    component.form.setValue({ name: '', type: 'CHECKING' });
 
     component.submit();
 
     expect(accountService.create).not.toHaveBeenCalled();
-  });
-
-  it('should require invoice days when type is credit card', () => {
-    component.openCreate();
-    component.form.setValue({ name: 'Black', type: 'CREDIT_CARD', closingDay: null, dueDay: null });
-
-    component.submit();
-
-    expect(accountService.create).not.toHaveBeenCalled();
-    expect(component.errorMessage()).toContain('fechamento');
   });
 
   it('should update the account when editing', () => {
@@ -91,7 +80,7 @@ describe('AccountsPanel', () => {
     accountService.create.and.returnValue(throwError(() => new Error('500')));
 
     component.openCreate();
-    component.form.setValue({ name: 'Carteira', type: 'CASH', closingDay: null, dueDay: null });
+    component.form.setValue({ name: 'Carteira', type: 'CASH' });
     component.submit();
 
     expect(component.errorMessage()).toContain('Erro ao salvar');

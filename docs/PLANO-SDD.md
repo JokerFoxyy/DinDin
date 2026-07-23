@@ -1,4 +1,4 @@
-# Guaranin — Plano SDD de Implementação
+# Poupito — Plano SDD de Implementação
 
 > **Fonte:** `DinDin/spec-app-financeiro.md` + `DinDin/prototipo-dashboard.html` (pasta local fora do repo git, nome não relacionado à marca)
 > **Criado em:** 2026-07-07
@@ -30,9 +30,9 @@
 ## 2. Estrutura do monorepo
 
 ```
-Guaranin/                  (repo git)
+Poupito/                  (repo git)
 ├── api/                    Spring Boot (Java 21, Maven)
-│   └── src/main/java/com/guaranin/api/
+│   └── src/main/java/com/poupito/api/
 │       ├── auth/  account/  category/  transaction/  invoice/
 │       ├── recurring/  budget/  goal/  investment/  dashboard/  importer/
 │       └── common/         (config, security, erros, money)
@@ -164,17 +164,63 @@ Pré-req: #11.
 Tasks: (1) `web/Dockerfile` + `Caddyfile` (Caddy serve o estático do Angular e faz proxy `/api/*`; `api/Dockerfile` já existia da sessão #4) + `infra/docker-compose.prod.yml`; (2) **Lightsail US$5/mês** (decisão do usuário — logo, imagens `linux/amd64`, não ARM); (3) `infra/scripts/backup.sh` (pg_dump → S3, lifecycle 30 dias) + `setup-host.sh` (swap 2GB); (4) `.github/workflows/deploy.yml` (SSH manual via `workflow_dispatch`) + job `docker` novo em `ci-web.yml`; (5) smoke test local do compose completo (proxy, fallback SPA, healthcheck) — verificação end-to-end **em produção real** ainda pendente: requer o usuário comprar domínio, criar a instância Lightsail e configurar os secrets do GitHub (passo a passo em `infra/README.md`).
 Pré-req: #4 + MVP estável (recomendado após #12).
 
-### Fase 4 — Open Finance
+### Fase 4 — Hardening & Open Finance
 
-**#22 — Conexão bancária via Open Finance** (sessão formal, a refinar quando a Fase 3 terminar)
+> **Ordem de execução (decisão do usuário, 2026-07-22): #26 → #24 → #22.** Primeiro o bugfix #26 (contas dessincronizadas na UI — pode rodar já, independe do deploy), depois #24 (observabilidade/hardening, precisa do deploy) e só então #22 (Open Finance). A #24 vem **antes** da #22 de propósito: a observabilidade existe em parte pra suportar o job de sync do Open Finance.
+
+**#24 — Observabilidade + Hardening contra exaustão** 🔜 próxima sessão formal da Fase 4 (roda **antes** da #22 — decisão do usuário; a refinar quando a Fase 3 terminar, mesma lógica da sessão #S)
+Ideia inicial: hoje só `actuator/health`/`info` estão expostos e só login/registro tem rate limiting (`LoginRateLimiter`, por IP+email) — o resto da API (transações, export, import) não tem limite nenhum, e a instância Lightsail de 1GB é um alvo fácil de exaustão assim que ficar pública. Motivador direto: o job de sincronização periódica do Open Finance (#22) é exatamente o tipo de coisa que falha silenciosamente sem observabilidade — melhor ter isso pronto antes.
+Tasks a refinar: (1) logs estruturados (JSON) por nível, com foco em eventos de segurança (falha de login, hits no rate limiter, 401/429, 5xx); (2) exportar esses logs pra **CloudWatch** (fora da instância — sobrevive a um comprometimento onde o atacante apaga logs locais) com retenção curta (30-90 dias) pra controlar custo, mais um **CloudWatch Alarm** simples (ex.: pico de tentativas de login falhas) notificando por email; (3) rate limiting geral na API (não só auth) — provavelmente via módulo de rate limit do Caddy ou filtro genérico no Spring, com limite mais agressivo nos endpoints caros (export xlsx via Apache POI, import de planilha); (4) **Cloudflare gratuito** na frente da instância — proteção DDoS básica + rate limiting na borda antes mesmo de chegar no Lightsail, mais barato/efetivo que construir tudo na aplicação; (5) revisar limites de connection pool (HikariCP) e threads (Tomcat) pra não estourar a RAM da instância sob carga; (6) verificação: simular rajada de requisições e confirmar que a aplicação se protege sem cair.
+Pré-req: #21 (precisa da instância real rodando em produção pra fazer sentido testar isso de verdade).
+
+**#22 — Conexão bancária via Open Finance** (sessão formal — roda **depois** da #24; a refinar quando a Fase 3 terminar)
 Ideia inicial: conectar contas de banco via agregador certificado em Open Finance (Pluggy ou Belvo) para puxar extratos/saldos automaticamente, reduzindo lançamento manual.
 Tasks a refinar: (1) avaliar Pluggy vs. Belvo (custo por conta conectada, cobertura de bancos, free tier); (2) fluxo de consentimento OAuth do usuário com o banco (conexão, expiração/reautenticação de token); (3) endpoint/job de sincronização periódica de extratos → mapeamento para `transactions` (evitar duplicidade com lançamentos manuais); (4) UI de gerenciamento de conexões bancárias; (5) verificação end-to-end com conta de banco real (sandbox do agregador).
-Pré-req: Fase 3 completa (MVP estável + deploy). Risco/trade-off a decidir: custo recorrente por conta conectada escala com base de usuários — mais vantajoso enquanto uso é pessoal (poucas contas) do que se o produto virar SaaS multiusuário sem repasse desse custo.
+Pré-req: Fase 3 completa (MVP estável + deploy) **+ #24**. Risco/trade-off a decidir: custo recorrente por conta conectada escala com base de usuários — mais vantajoso enquanto uso é pessoal (poucas contas) do que se o produto virar SaaS multiusuário sem repasse desse custo.
 
-**#23 — Identidade visual (logo + marca + paleta oficial)** 🟡 PARCIAL (2026-07-19 — SDD do rename: `docs/session-23-rebrand-guaranin/SDD.md`)
-**Feito:** rebranding completo de nome — "DinDin" → "**Guaranin**" (pacote Java, repositório GitHub, manifest PWA, cookies, docs) — domínio próprio já comprado pelo usuário.
-**Ainda falta:** (1) definir características do logo de verdade (símbolo vs. wordmark, variações claro/escuro/monocromático — hoje é só texto "Guara"+"nin" em duas cores via CSS, sem símbolo/ícone próprio); (2) paleta de cores oficial documentada (hoje ainda é o tema escuro genérico `--bg #0d1117`/`--accent #4f8ef7` herdado, usado ad-hoc); (3) ícones reais do manifest PWA (ainda é o placeholder padrão do Angular, sessão #20) e favicon; (4) aplicar a paleta definida nos componentes se houver divergência.
-Pré-req: nenhuma dependência técnica — pode rodar em paralelo a qualquer sessão; faz sentido antes de #22 (Open Finance) se o app for ganhar visibilidade externa (telas de consentimento OAuth do banco, por exemplo, aparecem para o usuário).
+**#23 — Identidade visual (logo + marca + paleta oficial)** ✅ CONCLUÍDA (SDDs: rename `docs/session-23-rebrand-guaranin/SDD.md` (2026-07-19), rename `docs/session-23-rebrand-poupito/SDD.md` (2026-07-22), visual `docs/session-23-identidade-visual/SDD.md` (2026-07-22))
+**Nome:** "DinDin" → "Guaranin" (2026-07-19) → "**Poupito**" (2026-07-22, final — "Guaranin" soava a guaraná/guarani; "Poupito", de "poupar", comunica economizar). Domínio `poupito.com` a registrar pelo usuário.
+**Identidade visual ("Crescimento Seguro"):** logo "P" azul-marinho + broto verde (fornecido pelo usuário); paleta navy `#0F172A`/`#1E293B` + verde esmeralda `#059669`/`#10B981` + neutras branco/cinza-claro; slogan "Descomplique, poupe, Poupito.". Implementado: **tema claro como padrão + toggle dark/light** (`ThemeService`, variáveis CSS `:root`/`[data-theme="dark"]`, script inline anti-flash); sidebar navy como "chrome" da marca nos dois temas; ícones PWA + favicon reais gerados do logo (substituem o placeholder do Angular da sessão #20); gráficos Chart.js e tints semânticos passam a respeitar o tema. 217 testes web; verificado nos dois temas no browser.
+**Melhorias futuras (não bloqueiam):** self-hostar fonte Inter; recolorir gráficos ao alternar tema sem navegar; favicon multi-resolução.
+Pré-req: nenhuma.
+
+**#25 — Remodelagem Contas & Cartões (método de pagamento)** ✅ CONCLUÍDA (2026-07-22 — SDD: `docs/session-25-remodelagem-contas-cartoes/SDD.md`) — **prioridade sobre #24/#22 (decisão do usuário: o rearranjo de domínio vem antes do resto)**
+Motivação: cartão de crédito como tipo de conta mistura "onde o dinheiro vive" com "instrumento de pagamento"; e o importador pulava a regra de fatura (bug: aba Faturas zerada após import) — corrigido dentro desta sessão.
+Decisões (usuário): entidade **Card** separada sempre vinculada a uma conta; compra no crédito só debita a conta **quando a fatura é paga** (`INVOICE_PAYMENT`, excluído das agregações de gasto pra não contar duas vezes); **dados transacionais recomeçados** na migration V12 (app pré-produção). Método de pagamento (crédito/débito/dinheiro) é **derivado**, não digitado; parcelamento passa a exigir cartão; fixos seguem em conta (cartão em fixos = melhoria futura).
+Tasks: (1) migration V12 + CRUD `/v1/cards`; (2) transações xor conta/cartão + fatura por cartão + endpoint pagar fatura; (3) importer roteando cartão→fatura; (4) testes backend; (5) frontend (painel Cartões, "Pagar com", badge de método, pagar fatura, import); (6) testes web + verificação e2e; (7) docs + PR.
+Pré-req: nenhum técnico (roda já).
+
+**#26 — Bugfix: estado de contas dessincronizado na UI (pós-#25)** ✅ CONCLUÍDA (2026-07-23 — SDD: `docs/session-26-fix-estado-contas/SDD.md`; bugs reportados pelo usuário 2026-07-22)
+Solução: stores reativos com signals (`core/state/{account,card,category}.store.ts`) como fonte única — toda mutação dá `refresh()` e propaga pros consumidores. Mensagem específica no 404 (conta/cartão apagado noutra tela) + refresh; nota de UX no painel de Cartões ("débito não é cartão"). 255 testes web (97/85/93/96); verificado e2e no browser (apagar conta some de todos os selects sem reload, nas duas direções e cross-rota).
+
+**Sintomas relatados:**
+1. Ao criar cartão vinculado a uma conta (ex.: cartão "Nubank" → conta "Débito"), a UI retorna **"Erro ao salvar o cartão"**.
+2. Os selects de conta **listam contas que o usuário já apagou** (ex.: "Débito" aparece no dropdown do form de cartão mesmo tendo sido excluída).
+
+**Causa-raiz (confirmada por análise de código + inspeção do banco):** os dois sintomas têm **uma única origem**. Cada componente (`accounts-panel`, `cards-panel`, `transactions`, `invoices`, `importer`, `recurring`, `dashboard`, `investments`, `budgets`, `goals`) carrega a lista de contas **independentemente em `ngOnInit`** e nunca ressincroniza. Quando o usuário apaga uma conta no `accounts-panel` (que se recarrega sozinho), os dropdowns dos **outros** componentes continuam com a lista antiga em cache — mostrando contas que já não existem (sintoma 2). Ao escolher uma dessas contas fantasma e salvar o cartão, o backend responde **404 "Conta não encontrada"** (`CardService.ownedAccount`), que o front exibe como o genérico "Erro ao salvar o cartão" (sintoma 1). Confirmado no banco: a conta "Débito" realmente não existe mais (só restaram Itau e Nubank para o usuário) — o delete funcionou no backend; foi a UI que ficou dessincronizada.
+
+**Tasks a refinar:**
+1. **Estado de contas compartilhado e reativo:** criar um store baseado em signals (ex.: `core/state/AccountStore`) que todos os consumidores leem, atualizado após qualquer mutação (create/update/delete). Alternativa mais barata: re-buscar contas ao abrir cada form/modal (`openCreate`/`openEdit`) nos componentes afetados. Avaliar generalizar para **cartões e categorias** (mesmo padrão de bug latente).
+2. **Mensagem de erro específica no 404:** quando a conta/cartão referenciado sumiu, dizer "A conta selecionada não existe mais — atualize a lista" e recarregar o select, em vez do genérico "Erro ao salvar".
+3. **UX "débito não é cartão":** o usuário tentou registrar "Nubank débito" no painel de **Cartões** (que exige dia de fechamento/vencimento). No modelo da #25, débito não é entidade — basta a **conta** (`CHECKING`/`CASH`) e escolher no "Pagar com" (método deriva pra `DEBITO`/`DINHEIRO`). Melhorar o texto/orientação: deixar claro que **Cartões = só crédito**; débito e dinheiro = contas.
+4. **Confirmar a mensagem do delete bloqueado por FK:** apagar conta com cartão vinculado → 409 (`cards.account_id NOT NULL`); hoje o front mostra "Erro ao excluir a conta". Garantir que a mensagem explique o motivo (cartão/transação vinculada).
+5. Regressão de testes web (≥90/80/90/90) + verificação e2e: apagar conta e confirmar que some de **todos** os selects sem precisar recarregar a página.
+
+Pré-req: nenhum (roda já; independe do deploy).
+
+**#27 — Arquivar contas & cartões (soft) + excluir com cascata explícito** 📋 PLANEJADA (refinamento pós-uso, decidido com o usuário 2026-07-23)
+Motivação: apagar cartão/conta com transações/faturas vinculadas hoje só bloqueia (409 por FK). Num app financeiro o histórico é o produto — cancelar um cartão não pode significar perder o histórico de gastos dele.
+Decisão (usuário): **arquivar/inativar é a ação principal** (some dos seletores de novo lançamento, mas mantém transações/faturas antigas visíveis no histórico e nos filtros); **excluir de vez em cascata** vira opção secundária, com confirmação forte mostrando a contagem exata (cartão + N transações + M faturas). Vale **igual para contas**.
+Tasks a refinar: (1) flag `active` em `Card` e `Account` (migration) + filtrar seletores de novo lançamento para só ativos (listagens/histórico/filtros mostram todos); (2) ação de arquivar/desarquivar (endpoint + UI); (3) excluir-com-cascata explícito (serviço transacional no backend + confirmação no front com a contagem); (4) testes (≥90% API, ≥90/80/90/90 web); (5) verificação e2e.
+Pré-req: #25 (modelo conta/cartão).
+
+**#28 — Saldo por conta (competência + regime de caixa)** 📋 PLANEJADA (refinamento pós-uso, decidido com o usuário 2026-07-23)
+Motivação: hoje só existe um saldo total agregado, em regime de **competência** (a compra no crédito já vira gasto na data da compra; `INVOICE_PAYMENT` não conta de novo). Falta ver o saldo **por conta** e, principalmente, o **dinheiro real disponível** considerando quando as faturas são efetivamente pagas.
+Decisão (usuário): **manter o saldo por competência como está** (padrão) e **adicionar** uma visão de **regime de caixa por conta** como recurso extra — o "dinheiro real" da conta agora e depois de pagar a fatura. No caixa: entradas e gastos em conta (débito/dinheiro) entram na data; a compra no crédito **não** baixa o caixa da conta até a fatura ser paga (aí o `INVOICE_PAYMENT` debita). Competência = "quanto gastei"; caixa = "quanto tenho de verdade na conta".
+Tasks a refinar: (1) cálculo de saldo de caixa por conta (entradas + gastos débito/dinheiro + `INVOICE_PAYMENT`, na data de cada lançamento); (2) endpoint de saldo por conta (as duas visões); (3) UI — saldo por conta (Configurações e/ou Dashboard) + a visão de caixa "agora vs. depois de pagar a fatura em aberto"; (4) testes; (5) verificação e2e.
+Pré-req: #25; roda melhor **depois da #27** (pra o saldo não somar contas/cartões arquivados de forma indevida — a confirmar no SDD).
+
+> Ordem: as sessões #27/#28 são refinamentos de produto que surgiram do uso real — **não alteram a ordem já combinada** (deploy #21 → #24 hardening → #22 Open Finance). Encaixar quando o usuário quiser; boa candidata a vir logo após o deploy, já que melhoram o dia a dia sem depender de infra nova.
 
 ### Fase 5 — Futuro (sem sessão planejada ainda)
 

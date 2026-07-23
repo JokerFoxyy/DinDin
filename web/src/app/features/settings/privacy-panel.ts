@@ -58,7 +58,7 @@ export class PrivacyPanel {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = 'guaranin-meus-dados.json';
+    anchor.download = 'poupito-meus-dados.json';
     anchor.click();
     URL.revokeObjectURL(url);
   }

@@ -5,9 +5,10 @@ import { of, throwError } from 'rxjs';
 import { Transactions } from './transactions';
 import { TransactionService } from './transaction.service';
 import { AccountService } from '../settings/account.service';
+import { CardService } from '../settings/card.service';
 import { CategoryService } from '../settings/category.service';
 import { PageResponse, Transaction } from './transaction.models';
-import { Account, Category } from '../settings/settings.models';
+import { Account, Card, Category } from '../settings/settings.models';
 
 describe('Transactions', () => {
   let fixture: ComponentFixture<Transactions>;
@@ -15,8 +16,11 @@ describe('Transactions', () => {
   let transactionService: jasmine.SpyObj<TransactionService>;
 
   const accounts: Account[] = [
-    { id: 'a1', name: 'Uniclass', type: 'CHECKING', closingDay: null, dueDay: null },
-    { id: 'a2', name: 'Nubank', type: 'CREDIT_CARD', closingDay: 28, dueDay: 7 }
+    { id: 'a1', name: 'Uniclass', type: 'CHECKING' },
+    { id: 'a2', name: 'Carteira', type: 'CASH' }
+  ];
+  const cards: Card[] = [
+    { id: 'k1', name: 'Nubank', accountId: 'a1', accountName: 'Uniclass', closingDay: 28, dueDay: 7 }
   ];
   const categories: Category[] = [
     { id: 'c1', name: 'Mercado', icon: '🛒', color: '#3fb950', kind: 'EXPENSE' },
@@ -24,16 +28,16 @@ describe('Transactions', () => {
   ];
   const padaria: Transaction = {
     id: 't1', description: 'Padaria', amount: 31.73, date: '2026-07-09', type: 'EXPENSE',
-    accountId: 'a1', accountName: 'Uniclass', categoryId: 'c1', categoryName: 'Mercado',
-    categoryIcon: '🛒', categoryColor: '#3fb950', invoiceMonth: null, tags: ['viagem', 'trabalho'],
-    installmentNumber: null, installmentCount: null
+    accountId: 'a1', accountName: 'Uniclass', cardId: null, cardName: null, method: 'DEBITO',
+    categoryId: 'c1', categoryName: 'Mercado', categoryIcon: '🛒', categoryColor: '#3fb950',
+    invoiceMonth: null, tags: ['viagem', 'trabalho'], installmentNumber: null, installmentCount: null
   };
   const cartao: Transaction = {
-    ...padaria, id: 't2', description: 'Streaming', accountId: 'a2', accountName: 'Nubank',
-    invoiceMonth: '2026-08-01'
+    ...padaria, id: 't2', description: 'Streaming', accountId: null, accountName: null,
+    cardId: 'k1', cardName: 'Nubank', method: 'CREDITO', invoiceMonth: '2026-08-01'
   };
   const parcela: Transaction = {
-    ...padaria, id: 't3', description: 'Notebook', installmentNumber: 2, installmentCount: 6
+    ...cartao, id: 't3', description: 'Notebook', installmentNumber: 2, installmentCount: 6
   };
 
   function pageOf(items: Transaction[], totalPages = 1): PageResponse<Transaction> {
@@ -41,12 +45,14 @@ describe('Transactions', () => {
   }
 
   beforeEach(async () => {
-    localStorage.removeItem('guaranin.lastAccount');
+    localStorage.removeItem('poupito.lastPaymentTarget');
     transactionService = jasmine.createSpyObj<TransactionService>('TransactionService',
       ['list', 'create', 'update', 'delete', 'export']);
     transactionService.list.and.returnValue(of(pageOf([padaria, cartao])));
     const accountService = jasmine.createSpyObj<AccountService>('AccountService', ['list']);
     accountService.list.and.returnValue(of(accounts));
+    const cardService = jasmine.createSpyObj<CardService>('CardService', ['list']);
+    cardService.list.and.returnValue(of(cards));
     const categoryService = jasmine.createSpyObj<CategoryService>('CategoryService', ['list']);
     categoryService.list.and.returnValue(of(categories));
 
@@ -55,6 +61,7 @@ describe('Transactions', () => {
       providers: [
         { provide: TransactionService, useValue: transactionService },
         { provide: AccountService, useValue: accountService },
+        { provide: CardService, useValue: cardService },
         { provide: CategoryService, useValue: categoryService }
       ]
     }).compileComponents();
@@ -64,13 +71,25 @@ describe('Transactions', () => {
     fixture.detectChanges();
   });
 
-  afterEach(() => localStorage.removeItem('guaranin.lastAccount'));
+  afterEach(() => localStorage.removeItem('poupito.lastPaymentTarget'));
 
   it('should render transactions with category tag and invoice hint', () => {
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Padaria');
     expect(fixture.nativeElement.querySelector('.tag').textContent).toContain('Mercado');
     expect(fixture.nativeElement.querySelector('.invoice-hint').textContent).toContain('fatura');
+  });
+
+  it('should render the payment method badge for each transaction', () => {
+    const badges = fixture.nativeElement.querySelectorAll('.method-badge');
+    const labels = Array.from(badges).map((b) => (b as HTMLElement).textContent?.trim());
+    expect(labels).toContain('Débito');
+    expect(labels).toContain('Crédito');
+  });
+
+  it('should show the card name in the account/card column', () => {
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Nubank');
   });
 
   it('should render the tag chips of a transaction', () => {
@@ -86,19 +105,19 @@ describe('Transactions', () => {
     const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     expect(component.modalOpen()).toBeTrue();
     expect(component.form.controls.date.value).toBe(todayLocal);
-    expect(component.form.controls.accountId.value).toBe('a1');
+    expect(component.form.controls.target.value).toBe('account:a1');
     expect(component.form.controls.categoryId.value).toBe('c1');
   });
 
-  it('should prefer the last used account when opening create modal', () => {
-    localStorage.setItem('guaranin.lastAccount', 'a2');
+  it('should prefer the last used payment target when opening create modal', () => {
+    localStorage.setItem('poupito.lastPaymentTarget', 'card:k1');
 
     component.openCreate();
 
-    expect(component.form.controls.accountId.value).toBe('a2');
+    expect(component.form.controls.target.value).toBe('card:k1');
   });
 
-  it('should create a transaction and remember the account', () => {
+  it('should create an account-backed transaction and remember the target', () => {
     transactionService.create.and.returnValue(of(padaria));
     component.openCreate();
     component.form.patchValue({ description: 'Padaria', amount: 31.73 });
@@ -107,9 +126,24 @@ describe('Transactions', () => {
 
     expect(transactionService.create).toHaveBeenCalledWith(
       jasmine.objectContaining({ description: 'Padaria', amount: 31.73, accountId: 'a1' }));
-    expect(localStorage.getItem('guaranin.lastAccount')).toBe('a1');
+    const payload = transactionService.create.calls.mostRecent().args[0];
+    expect(payload.cardId).toBeUndefined();
+    expect(localStorage.getItem('poupito.lastPaymentTarget')).toBe('account:a1');
     expect(component.modalOpen()).toBeFalse();
     expect(transactionService.list).toHaveBeenCalledTimes(2);
+  });
+
+  it('should create a card-backed transaction with cardId when a card is selected', () => {
+    transactionService.create.and.returnValue(of(cartao));
+    component.openCreate();
+    component.form.patchValue({ description: 'Streaming', amount: 39.9, target: 'card:k1' });
+
+    component.submit();
+
+    expect(transactionService.create).toHaveBeenCalledWith(
+      jasmine.objectContaining({ cardId: 'k1' }));
+    const payload = transactionService.create.calls.mostRecent().args[0];
+    expect(payload.accountId).toBeUndefined();
   });
 
   it('should not call the service when form is invalid', () => {
@@ -131,6 +165,23 @@ describe('Transactions', () => {
     expect(component.form.controls.categoryId.value).toBe('c2');
   });
 
+  it('should move a card selection back to an account when switching to income', () => {
+    component.openCreate();
+    component.form.patchValue({ target: 'card:k1', type: 'INCOME' });
+
+    component.onTypeChange();
+
+    expect(component.form.controls.target.value).toBe('account:a1');
+    expect(component.isCardSelected()).toBeFalse();
+  });
+
+  it('should hide cards from the payment selector for income', () => {
+    component.openCreate();
+    component.form.controls.type.setValue('INCOME');
+
+    expect(component.cardsForType()).toEqual([]);
+  });
+
   it('should update the transaction when editing', () => {
     transactionService.update.and.returnValue(of(padaria));
 
@@ -140,6 +191,12 @@ describe('Transactions', () => {
 
     expect(transactionService.update).toHaveBeenCalledWith('t1',
       jasmine.objectContaining({ description: 'Padaria Sameiro' }));
+  });
+
+  it('should set the target to the card when editing a card transaction', () => {
+    component.openEdit(cartao);
+
+    expect(component.form.controls.target.value).toBe('card:k1');
   });
 
   it('should prefill the tags field with a comma-separated list when editing', () => {
@@ -161,6 +218,12 @@ describe('Transactions', () => {
 
   it('should not open edit modal for invoice adjustments', () => {
     component.openEdit({ ...padaria, type: 'INVOICE_ADJUSTMENT' });
+
+    expect(component.modalOpen()).toBeFalse();
+  });
+
+  it('should not open edit modal for invoice payments', () => {
+    component.openEdit({ ...padaria, type: 'INVOICE_PAYMENT' });
 
     expect(component.modalOpen()).toBeFalse();
   });
@@ -191,13 +254,22 @@ describe('Transactions', () => {
     expect(transactionService.list).toHaveBeenCalledWith('2026-06', jasmine.anything(), 0);
   });
 
-  it('should pass filters to the service when filters change', () => {
-    component.filterForm.patchValue({ accountId: 'a2', type: 'EXPENSE' });
+  it('should pass the account filter to the service when the target is an account', () => {
+    component.filterForm.patchValue({ target: 'account:a2', type: 'EXPENSE' });
 
     component.onFiltersChange();
 
     expect(transactionService.list).toHaveBeenCalledWith(jasmine.any(String),
       jasmine.objectContaining({ accountId: 'a2', type: 'EXPENSE' }), 0);
+  });
+
+  it('should pass the card filter to the service when the target is a card', () => {
+    component.filterForm.patchValue({ target: 'card:k1' });
+
+    component.onFiltersChange();
+
+    expect(transactionService.list).toHaveBeenCalledWith(jasmine.any(String),
+      jasmine.objectContaining({ cardId: 'k1' }), 0);
   });
 
   it('should debounce the free-text search before reloading', (done) => {
@@ -222,10 +294,10 @@ describe('Transactions', () => {
     expect(fixture.nativeElement.querySelector('.installment-chip').textContent).toContain('2/6');
   });
 
-  it('should not send installments when creating a single (non-parceled) transaction', () => {
+  it('should not send installments when the target is an account', () => {
     transactionService.create.and.returnValue(of(padaria));
     component.openCreate();
-    component.form.patchValue({ description: 'Padaria', amount: 31.73, installments: 1 });
+    component.form.patchValue({ description: 'Padaria', amount: 31.73, target: 'account:a1', installments: 6 });
 
     component.submit();
 
@@ -233,20 +305,20 @@ describe('Transactions', () => {
     expect(payload.installments).toBeUndefined();
   });
 
-  it('should send installments when creating a parceled transaction', () => {
-    transactionService.create.and.returnValue(of(padaria));
+  it('should send installments when creating a parceled card transaction', () => {
+    transactionService.create.and.returnValue(of(cartao));
     component.openCreate();
-    component.form.patchValue({ description: 'Notebook', amount: 500, installments: 6 });
+    component.form.patchValue({ description: 'Notebook', amount: 500, target: 'card:k1', installments: 6 });
 
     component.submit();
 
     expect(transactionService.create).toHaveBeenCalledWith(
-      jasmine.objectContaining({ installments: 6 }));
+      jasmine.objectContaining({ installments: 6, cardId: 'k1' }));
   });
 
   it('should not send installments when editing, even if the field has a value greater than one', () => {
-    transactionService.update.and.returnValue(of(padaria));
-    component.openEdit(padaria);
+    transactionService.update.and.returnValue(of(cartao));
+    component.openEdit(cartao);
     component.form.patchValue({ installments: 6 });
 
     component.submit();
@@ -303,5 +375,15 @@ describe('Transactions', () => {
     component.submit();
 
     expect(component.errorMessage()).toContain('Categoria de entrada');
+  });
+
+  it('should warn and re-sync when the chosen account/card 404s (apagado noutra tela)', () => {
+    transactionService.create.and.returnValue(throwError(() => new HttpErrorResponse({ status: 404 })));
+    component.openCreate();
+    component.form.patchValue({ description: 'X', amount: 10 });
+
+    component.submit();
+
+    expect(component.errorMessage()).toContain('não existe mais');
   });
 });

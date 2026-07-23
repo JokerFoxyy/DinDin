@@ -1,6 +1,6 @@
 <div class="panel">
   <div class="panel-header">
-    <h2>Contas &amp; cartões</h2>
+    <h2>Contas</h2>
     @if (!showForm()) {
       <button class="btn" (click)="openCreate()">+ Nova conta</button>
     }
@@ -27,18 +27,6 @@
           }
         </select>
       </div>
-      @if (isCreditCard()) {
-        <div class="days-row">
-          <div class="field">
-            <label for="closing-day">Dia de fechamento</label>
-            <input id="closing-day" type="number" min="1" max="31" formControlName="closingDay" />
-          </div>
-          <div class="field">
-            <label for="due-day">Dia de vencimento</label>
-            <input id="due-day" type="number" min="1" max="31" formControlName="dueDay" />
-          </div>
-        </div>
-      }
       <div class="form-actions">
         <button class="btn" type="submit">{{ editing() ? 'Salvar' : 'Criar' }}</button>
         <button class="btn-ghost" type="button" (click)="cancel()">Cancelar</button>
@@ -47,26 +35,18 @@
   }
 
   @if (accounts().length === 0 && !showForm()) {
-    <p class="empty">Nenhuma conta ainda. Crie a primeira — todo lançamento precisa de uma conta.</p>
+    <p class="empty">Nenhuma conta ainda. Crie a primeira — todo lançamento em débito ou dinheiro precisa de uma conta.</p>
   } @else if (accounts().length > 0) {
     <table>
       <tr>
         <th>Nome</th>
         <th>Tipo</th>
-        <th>Fatura</th>
         <th></th>
       </tr>
       @for (account of accounts(); track account.id) {
         <tr>
           <td>{{ account.name }}</td>
           <td>{{ typeLabels[account.type] }}</td>
-          <td>
-            @if (account.type === 'CREDIT_CARD') {
-              fecha dia {{ account.closingDay }} · vence dia {{ account.dueDay }}
-            } @else {
-              —
-            }
-          </td>
           <td class="row-actions">
             <button type="button" class="link" (click)="openEdit(account)">Editar</button>
             <button type="button" class="link danger" (click)="remove(account)">Excluir</button>
