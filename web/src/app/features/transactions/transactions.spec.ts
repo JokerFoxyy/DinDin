@@ -376,4 +376,14 @@ describe('Transactions', () => {
 
     expect(component.errorMessage()).toContain('Categoria de entrada');
   });
+
+  it('should warn and re-sync when the chosen account/card 404s (apagado noutra tela)', () => {
+    transactionService.create.and.returnValue(throwError(() => new HttpErrorResponse({ status: 404 })));
+    component.openCreate();
+    component.form.patchValue({ description: 'X', amount: 10 });
+
+    component.submit();
+
+    expect(component.errorMessage()).toContain('não existe mais');
+  });
 });
