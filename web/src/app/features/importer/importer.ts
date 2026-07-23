@@ -2,10 +2,10 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 
-import { AccountService } from '../settings/account.service';
-import { CardService } from '../settings/card.service';
-import { CategoryService } from '../settings/category.service';
-import { Account, Card, AccountType, CategoryKind } from '../settings/settings.models';
+import { AccountStore } from '../../core/state/account.store';
+import { CardStore } from '../../core/state/card.store';
+import { CategoryStore } from '../../core/state/category.store';
+import { AccountType, CategoryKind } from '../settings/settings.models';
 import { ImportService } from './import.service';
 import { AccountMappingChoice, ImportCommitResult, ImportMapping, ImportPreview } from './import.models';
 
@@ -37,16 +37,16 @@ interface CategoryMappingRow {
 })
 export class Importer implements OnInit {
   private readonly importService = inject(ImportService);
-  private readonly accountService = inject(AccountService);
-  private readonly cardService = inject(CardService);
-  private readonly categoryService = inject(CategoryService);
+  private readonly accountStore = inject(AccountStore);
+  private readonly cardStore = inject(CardStore);
+  private readonly categoryStore = inject(CategoryStore);
 
   readonly year = signal(2026);
   readonly file = signal<File | null>(null);
   readonly preview = signal<ImportPreview | null>(null);
-  readonly accounts = signal<Account[]>([]);
-  readonly cards = signal<Card[]>([]);
-  readonly categories = signal<{ id: string; name: string }[]>([]);
+  readonly accounts = this.accountStore.accounts;
+  readonly cards = this.cardStore.cards;
+  readonly categories = this.categoryStore.categories;
   readonly accountMappings = signal<AccountMappingRow[]>([]);
   readonly categoryMappings = signal<CategoryMappingRow[]>([]);
   readonly result = signal<ImportCommitResult | null>(null);
@@ -57,9 +57,9 @@ export class Importer implements OnInit {
   readonly categoryKinds: CategoryKind[] = ['EXPENSE', 'INCOME'];
 
   ngOnInit(): void {
-    this.accountService.list().subscribe((accounts) => this.accounts.set(accounts));
-    this.cardService.list().subscribe((cards) => this.cards.set(cards));
-    this.categoryService.list().subscribe((categories) => this.categories.set(categories));
+    this.accountStore.ensureLoaded();
+    this.cardStore.ensureLoaded();
+    this.categoryStore.ensureLoaded();
   }
 
   onFileSelected(event: Event): void {

@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
-import { AccountService } from './account.service';
+import { AccountStore } from '../../core/state/account.store';
 import { ACCOUNT_TYPE_LABELS, Account, AccountType } from './settings.models';
 
 @Component({
@@ -10,10 +10,10 @@ import { ACCOUNT_TYPE_LABELS, Account, AccountType } from './settings.models';
   templateUrl: './accounts-panel.html'
 })
 export class AccountsPanel implements OnInit {
-  private readonly accountService = inject(AccountService);
+  private readonly accountStore = inject(AccountStore);
   private readonly formBuilder = inject(FormBuilder);
 
-  readonly accounts = signal<Account[]>([]);
+  readonly accounts = this.accountStore.accounts;
   readonly editing = signal<Account | null>(null);
   readonly showForm = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -27,7 +27,7 @@ export class AccountsPanel implements OnInit {
   });
 
   ngOnInit(): void {
-    this.load();
+    this.accountStore.ensureLoaded();
   }
 
   openCreate(): void {
@@ -57,25 +57,18 @@ export class AccountsPanel implements OnInit {
     const payload = this.form.getRawValue();
     const editing = this.editing();
     const request$ = editing
-      ? this.accountService.update(editing.id, payload)
-      : this.accountService.create(payload);
+      ? this.accountStore.update(editing.id, payload)
+      : this.accountStore.create(payload);
     request$.subscribe({
-      next: () => {
-        this.cancel();
-        this.load();
-      },
+      next: () => this.cancel(),
       error: () => this.errorMessage.set('Erro ao salvar a conta')
     });
   }
 
   remove(account: Account): void {
-    this.accountService.delete(account.id).subscribe({
-      next: () => this.load(),
-      error: () => this.errorMessage.set('Erro ao excluir a conta')
+    this.accountStore.delete(account.id).subscribe({
+      error: () => this.errorMessage.set(
+        'Não foi possível excluir: a conta pode ter cartões, transações ou faturas vinculados.')
     });
-  }
-
-  private load(): void {
-    this.accountService.list().subscribe((accounts) => this.accounts.set(accounts));
   }
 }

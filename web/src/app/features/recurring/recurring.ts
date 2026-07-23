@@ -3,9 +3,9 @@ import { CurrencyPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { MonthPicker } from '../../shared/month-picker';
-import { AccountService } from '../settings/account.service';
-import { CategoryService } from '../settings/category.service';
-import { Account, Category } from '../settings/settings.models';
+import { AccountStore } from '../../core/state/account.store';
+import { CategoryStore } from '../../core/state/category.store';
+import { Category } from '../settings/settings.models';
 import { RecurringService } from './recurring.service';
 import { Occurrence, Recurring as RecurringModel, RecurringType } from './recurring.models';
 
@@ -17,15 +17,15 @@ import { Occurrence, Recurring as RecurringModel, RecurringType } from './recurr
 })
 export class Recurring implements OnInit {
   private readonly recurringService = inject(RecurringService);
-  private readonly accountService = inject(AccountService);
-  private readonly categoryService = inject(CategoryService);
+  private readonly accountStore = inject(AccountStore);
+  private readonly categoryStore = inject(CategoryStore);
   private readonly formBuilder = inject(FormBuilder);
 
   readonly month = signal(currentMonth());
   readonly recurrings = signal<RecurringModel[]>([]);
   readonly occurrences = signal<Occurrence[]>([]);
-  readonly accounts = signal<Account[]>([]);
-  readonly categories = signal<Category[]>([]);
+  readonly accounts = this.accountStore.accounts;
+  readonly categories = this.categoryStore.categories;
   readonly showForm = signal(false);
   readonly editing = signal<RecurringModel | null>(null);
   readonly errorMessage = signal<string | null>(null);
@@ -42,8 +42,8 @@ export class Recurring implements OnInit {
   });
 
   ngOnInit(): void {
-    this.accountService.list().subscribe((accounts) => this.accounts.set(accounts));
-    this.categoryService.list().subscribe((categories) => this.categories.set(categories));
+    this.accountStore.ensureLoaded();
+    this.categoryStore.ensureLoaded();
     this.load();
   }
 

@@ -213,6 +213,13 @@ td { padding: 9px 8px; border-bottom: 1px solid var(--border); }
   font-size: 13px;
 }
 
+.panel-hint {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
 .row-actions {
   display: flex;
   gap: 14px;

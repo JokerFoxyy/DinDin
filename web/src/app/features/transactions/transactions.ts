@@ -4,10 +4,10 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { MonthPicker } from '../../shared/month-picker';
-import { AccountService } from '../settings/account.service';
-import { CardService } from '../settings/card.service';
-import { CategoryService } from '../settings/category.service';
-import { Account, Card, Category, PAYMENT_METHOD_LABELS } from '../settings/settings.models';
+import { AccountStore } from '../../core/state/account.store';
+import { CardStore } from '../../core/state/card.store';
+import { CategoryStore } from '../../core/state/category.store';
+import { Card, Category, PAYMENT_METHOD_LABELS } from '../settings/settings.models';
 import { TransactionService } from './transaction.service';
 import {
   TRANSACTION_TYPE_LABELS,
@@ -27,9 +27,9 @@ const LAST_TARGET_KEY = 'poupito.lastPaymentTarget';
 })
 export class Transactions implements OnInit {
   private readonly transactionService = inject(TransactionService);
-  private readonly accountService = inject(AccountService);
-  private readonly cardService = inject(CardService);
-  private readonly categoryService = inject(CategoryService);
+  private readonly accountStore = inject(AccountStore);
+  private readonly cardStore = inject(CardStore);
+  private readonly categoryStore = inject(CategoryStore);
   private readonly formBuilder = inject(FormBuilder);
 
   readonly month = signal(currentMonth());
@@ -37,9 +37,9 @@ export class Transactions implements OnInit {
   readonly totalElements = signal(0);
   readonly totalPages = signal(0);
   readonly page = signal(0);
-  readonly accounts = signal<Account[]>([]);
-  readonly cards = signal<Card[]>([]);
-  readonly categories = signal<Category[]>([]);
+  readonly accounts = this.accountStore.accounts;
+  readonly cards = this.cardStore.cards;
+  readonly categories = this.categoryStore.categories;
   readonly modalOpen = signal(false);
   readonly editing = signal<Transaction | null>(null);
   readonly errorMessage = signal<string | null>(null);
@@ -69,9 +69,9 @@ export class Transactions implements OnInit {
   private searchDebounce?: ReturnType<typeof setTimeout>;
 
   ngOnInit(): void {
-    this.accountService.list().subscribe((accounts) => this.accounts.set(accounts));
-    this.cardService.list().subscribe((cards) => this.cards.set(cards));
-    this.categoryService.list().subscribe((categories) => this.categories.set(categories));
+    this.accountStore.ensureLoaded();
+    this.cardStore.ensureLoaded();
+    this.categoryStore.ensureLoaded();
     this.load();
   }
 
@@ -197,8 +197,16 @@ export class Transactions implements OnInit {
         this.closeModal();
         this.load();
       },
-      error: (error: HttpErrorResponse) =>
-        this.errorMessage.set(error.error?.message ?? 'Erro ao salvar o lançamento')
+      error: (error: HttpErrorResponse) => {
+        if (error.status === 404) {
+          // conta/cartão escolhido foi apagado noutra tela — ressincroniza os selects
+          this.accountStore.refresh();
+          this.cardStore.refresh();
+          this.errorMessage.set('A conta ou cartão selecionado não existe mais — atualize e tente de novo.');
+        } else {
+          this.errorMessage.set(error.error?.message ?? 'Erro ao salvar o lançamento');
+        }
+      }
     });
   }
 
