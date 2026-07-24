@@ -224,7 +224,39 @@ Pré-req: #25; roda melhor **depois da #27** (pra o saldo não somar contas/cart
 
 ### Fase 5 — Futuro (sem sessão planejada ainda)
 
-Multi-tenancy real, plano free/pago, cotações via brapi.dev, app mobile consumindo a mesma API, feature "a receber/emprestado" (contas mãe).
+Ideias soltas: Multi-tenancy real, plano free/pago, cotações via brapi.dev, app mobile consumindo a mesma API, feature "a receber/emprestado" (contas mãe).
+
+#### Escala / virar SaaS — tenancy, migrações e infra (nota de arquitetura, 2026-07-24)
+
+**Tenancy:** o app já nasce no modelo **pool** (shared DB + shared schema, tudo escopado por `user_id`) — o certo pra B2C. Virar SaaS **não exige reprojetar o domínio**; as migrations continuam sendo **uma execução de Flyway por deploy**. Alternativas (schema-per-tenant / db-per-tenant) só compensam pra isolamento enterprise/regulado, com custo operacional bem maior.
+
+**Migrações em escala (o que muda é o *processo*, não os arquivos):**
+- **Expand → migrate → contract:** migration aditiva compatível com a versão *antiga* do app durante o rolling deploy; limpeza (`DROP`/`RENAME`) só num deploy posterior. Uma migration nunca pode quebrar o app que ainda está no ar.
+- **Tirar o Flyway do boot da API** e rodar como **passo separado do pipeline** (job/init antes de subir as réplicas) — evita corrida entre N instâncias.
+- **Evitar locks em tabela grande:** `CREATE INDEX CONCURRENTLY`, coluna nullable + backfill em lotes (nunca `UPDATE` gigante que trava a tabela).
+- **Postgres gerenciado** (RDS/Aurora) com PITR/snapshots/réplicas — rede de segurança pra migrar em produção.
+- **(dado financeiro) Postgres RLS** como defesa-em-profundidade: políticas no banco garantem isolamento por tenant mesmo se um bug na app esquecer o `where user_id`.
+
+**Infra nova necessária (além do deploy atual de 1 VM Lightsail):**
+- **Postgres gerenciado** (sai da VM) — RDS/Aurora.
+- **Compute dedicada** pra API (sai do burstable) — ECS Fargate ou EC2 não-burst; 2+ réplicas pra HA.
+- **Load balancer (ALB)** na frente das réplicas + TLS.
+- **Frontend estático** → S3 + CloudFront (em vez do Caddy servir o build).
+- **Observabilidade** (CloudWatch — já é a #24) + **Secrets Manager**.
+- CI/CD já publica imagens (GHCR); adicionar o passo de migração no pipeline.
+
+**Custos aproximados (referência us-east-1, variam bastante):**
+
+| Item | Hoje (uso pessoal) | SaaS mínimo com HA |
+|---|---|---|
+| Compute (API) | Lightsail US$5–10/mês (tudo junto) | Fargate/EC2 ~US$35–80/mês (1–2 réplicas) |
+| Postgres | na mesma VM (grátis) | RDS `t4g.small` ~US$25–30 (single-AZ) / ~US$50–60 (Multi-AZ HA) + storage ~US$0,12/GB |
+| Load balancer | Caddy (grátis) | ALB ~US$16–20/mês + tráfego |
+| Frontend | Caddy serve o estático | S3+CloudFront ~US$1–5/mês |
+| Observabilidade/Secrets | — | CloudWatch + Secrets Manager ~US$5–15/mês |
+| **Total aprox.** | **~US$10/mês** | **~US$90–180/mês** (piso; escala com tenants/tráfego) |
+
+O salto de "app pessoal" pra "SaaS com HA" é de ~US$10 pra ~US$100+/mês só de infra base — faz sentido **só quando houver tração/receita**. Enquanto é pessoal, a VM única no Lightsail (2GB) está perfeita. *Aurora Serverless v2* é uma alternativa elástica (paga pelo uso), mas tem piso ~US$40+/mês se ficar sempre ligado. Região `sa-east-1` (São Paulo) costuma ser ~15–30% mais cara que `us-east-1`.
 
 ## 6. Grafo de dependências (resumo)
 
