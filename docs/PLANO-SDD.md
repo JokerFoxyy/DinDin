@@ -237,6 +237,18 @@ Ideias soltas: Multi-tenancy real, plano free/pago, cotações via brapi.dev, ap
 - **Postgres gerenciado** (RDS/Aurora) com PITR/snapshots/réplicas — rede de segurança pra migrar em produção.
 - **(dado financeiro) Postgres RLS** como defesa-em-profundidade: políticas no banco garantem isolamento por tenant mesmo se um bug na app esquecer o `where user_id`.
 
+**Migração dos dados existentes (Lightsail → RDS) — NÃO confundir com migration do Flyway:** "migration do Flyway" versiona o *schema* (V1..V12); "migração de dados" move as *linhas* dos usuários de um Postgres pro outro. O RDS sobe vazio e você copia o banco pra dentro dele.
+- **Método pro tamanho atual (`pg_dump` + `pg_restore`, janela de manutenção de poucos minutos):**
+  1. RDS vazio, mesma versão major (16); liberar rede (ver pegadinha abaixo).
+  2. Congelar escritas: `docker compose stop api`.
+  3. Dump: `docker exec poupito-postgres-prod pg_dump -U poupito -d poupito -Fc > poupito.dump`
+  4. Restore: `pg_restore -h <endpoint-rds> -U <master> -d poupito --no-owner --no-privileges poupito.dump`
+  5. Apontar a API pro RDS (`DB_HOST`/`DB_URL`/`DB_USER`/`DB_PASSWORD` no `.env`), tirar o container `postgres` do compose, `docker compose up -d api`.
+  6. Validar (login + dados); só então desativar o Postgres local. **Rollback:** apontar a API de volta enquanto o dado antigo existir.
+- O dump leva a `flyway_schema_history` junto → o RDS já nasce no V12 e o **Flyway não re-roda nada** (schema + dados chegam prontos).
+- **Zero-downtime (quando houver tráfego que não pode cair):** trocar o dump por replicação contínua — **AWS DMS** (carga inicial + CDC das mudanças, cutover instantâneo) ou logical replication nativa do Postgres.
+- **Pegadinha de rede:** o Lightsail fica numa VPC separada da VPC padrão do RDS — por padrão não se enxergam. Habilitar **VPC peering** (Console → Account → Advanced) ou já rodar a compute (EC2/ECS) na mesma VPC do RDS.
+
 **Infra nova necessária (além do deploy atual de 1 VM Lightsail):**
 - **Postgres gerenciado** (sai da VM) — RDS/Aurora.
 - **Compute dedicada** pra API (sai do burstable) — ECS Fargate ou EC2 não-burst; 2+ réplicas pra HA.
